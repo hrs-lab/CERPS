@@ -1,0 +1,71 @@
+"""Example: a 3-gene regulatory network (requirement 3).
+
+Genes X1, X2, X3 repress each other (all-to-all); the epigenetic
+inheritance kernel is Gaussian and the cell kinetics are continuous.
+The population settles into a homeostasis with four phenotypes:
+the all-on stem-like state and three committed single-gene-high states.
+"""
+import os
+import sys
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+
+from cerps.config import (CERPSConfig, GRNConfig, EpiConfig,  # noqa: E402
+                          RatesConfig)
+from cerps.simulator import Simulator  # noqa: E402
+from cerps import rates as rates_mod  # noqa: E402
+
+OUT = os.path.join(os.path.dirname(HERE), "reproduction", "results",
+                   "figures")
+
+
+def main(t_max=1500.0):
+    cfg = CERPSConfig(
+        grn=GRNConfig(n_genes=3, alpha=(0.4, 0.4, 0.4),
+                      sigma=(0.05, 0.05, 0.05)),
+        epi=EpiConfig(kernel="gaussian"),
+        rates=RatesConfig(rate_mode="continuous"),
+        n_init=100, max_time=t_max, seed=3)
+    sim = Simulator(cfg)
+    sim.run()
+    rec = sim.records
+    t = np.array(rec["t"])
+
+    # phenotype composition from the final snapshot
+    snap = sim.snapshots[-1] if sim.snapshots else None
+    fig, axs = plt.subplots(1, 2, figsize=(8.4, 3.0))
+    ax = axs[0]
+    ax.plot(t, rec["sc"], color="#2e9e2e", label="SC-like (all on)")
+    ax.plot(t, rec["ta1"], color="#1f4fd8", label="X1 high")
+    ax.plot(t, rec["ta2"], color="#31c6f2", label="X2 high")
+    ax.plot(t, rec["other"], color="#d62728", label="X3 high")
+    ax.plot(t, rec["total"], "--", color="#555555", label="Total")
+    ax.set_xlabel("t (h)")
+    ax.set_ylabel("cell number")
+    ax.legend(frameon=False, fontsize=6)
+    ax.set_title("3-gene GRN population dynamics")
+    ax = axs[1]
+    if snap is not None:
+        x = snap["x"]
+        high = x > 0.5
+        n_hi = high.sum(axis=1)
+        cats = ["all-low", "1 high", "2 high", "3 high (SC)"]
+        counts = [np.sum(n_hi == j) for j in range(4)]
+        ax.bar(range(4), counts, color=["#999", "#1f4fd8", "#888",
+                                        "#2e9e2e"])
+        ax.set_xticks(range(4))
+        ax.set_xticklabels(cats, fontsize=7)
+        ax.set_ylabel("cells at t = %.0f h" % snap["t"])
+        ax.set_title("final expression states")
+    fig.tight_layout()
+    os.makedirs(OUT, exist_ok=True)
+    fig.savefig(os.path.join(OUT, "cerps_example_3gene.png"), dpi=200)
+    print("final total:", rec["total"][-1], " SC-like:", rec["sc"][-1])
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+# heavy simulation data (regenerate with reproduction/scripts/run_batches.py)
+reproduction/results/data/*.npz
+reproduction/results/data/_runlog.txt
+# CERPS example outputs are kept; add here anything you don't want:
+*.tmp.npz
+.ipynb_checkpoints/

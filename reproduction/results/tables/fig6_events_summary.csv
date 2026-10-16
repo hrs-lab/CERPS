@@ -1,0 +1,5 @@
+panel,event_time_h,history_len
+TA1-SC,1786.0,435
+TA2-SC,1114.8,477
+TA1-TA2,564.8,505
+TA2-TA1,1939.0,577

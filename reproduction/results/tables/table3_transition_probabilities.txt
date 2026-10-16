@@ -1,0 +1,21 @@
+Table 3: cell type transition probabilities (%) (mother rows -> daughter columns)
+
+Reproduction (30 runs, 2000-4000 h):
+mother\daughter   SC        TA1       TA2
+SC             73.9885   12.9919   13.0197
+TA1             0.0010   99.9955    0.0035
+TA2             0.0015    0.0032   99.9953
+
+Paper (Table 3):
+mother\daughter   SC        TA1       TA2
+SC             73.9402   12.9889   13.0709
+TA1             0.0013   99.9955    0.0032
+TA2             0.0013    0.0035   99.9952
+
+Absolute difference:
+mother\daughter   SC        TA1       TA2
+SC              0.0483    0.0030    0.0512
+TA1             0.0003    0.0000    0.0003
+TA2             0.0002    0.0003    0.0001
+
+Total recorded transitions: 15582131
