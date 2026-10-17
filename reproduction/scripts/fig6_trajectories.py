@@ -22,7 +22,7 @@ PANELS = [("TA1-SC", 1, 0), ("TA2-SC", 3, 0),
           ("TA1-TA2", 1, 3), ("TA2-TA1", 3, 1)]
 
 
-def collect_events(n_steps=8000, seed=3, t_min=500.0):
+def collect_events(n_steps=16000, seed=3, t_min=500.0):
     """Run the reference simulator once and return de-/trans-diff events."""
     out_cache = os.path.join(DATA, "fig6_events.npz")
     if os.path.exists(out_cache):
@@ -31,7 +31,8 @@ def collect_events(n_steps=8000, seed=3, t_min=500.0):
 
     p = DEFAULT
     res = simulate_reference(p, n_runs=1, n_steps=n_steps, seed=seed,
-                             rec_tran_from=10 ** 9, u_track=0.36)
+                             rec_tran_from=10 ** 9, u_track=0.36,
+                             ring_len=1600, max_track_slots=4000)
     events = [e for e in res["events"] if e["t"] >= t_min]
     np.savez_compressed(out_cache, events=np.array(events, dtype=object))
     return events

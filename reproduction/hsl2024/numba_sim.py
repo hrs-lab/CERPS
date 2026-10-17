@@ -304,7 +304,13 @@ def run_simulation(
                     DIV[i] = DIV[i] + 1
                     if DIV[i] == max_div_ta and ct != 0:
                         continue                 # TA senescence death
-                    if not fixed_u:
+                    if fixed_u:
+                        # daughters inherit u exactly; still two daughters
+                        div_idx[ndiv] = w
+                        div_phi1[ndiv] = -1.0
+                        div_phi2[ndiv] = -1.0
+                        ndiv += 1
+                    else:
                         # phi from the mother's pre-division epigenetic state
                         v1 = m3 * U1[i]
                         v2 = m3 * U2[i]

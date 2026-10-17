@@ -86,3 +86,32 @@ def single_trajectory(u, x0, p: Params, t_max=100.0, seed=0, dt=None):
         ts.append((s + 1) * dt)
         xs.append(x[0].copy())
     return np.array(ts), np.array(xs)
+
+
+def fixed_u_end_ratios(u, x0, p: Params, t_max=1000.0, n_runs=100,
+                       n_cells=100, seed=0):
+    """Fig. 3 protocol: n_runs x n_cells cells start at the SC attractor
+    with the epigenetic state fixed at u; pure gene dynamics (no cell
+    cycle) for t_max; returns end-state ratios (SC, TA1, TA2) in percent,
+    averaged over runs (all cells are simulated in one vectorised batch).
+
+    The phenotype is tracked with the same keep-previous rule as the
+    population model (initial label: SC, as all cells start as stem
+    cells).
+    """
+    rng = np.random.default_rng(seed)
+    M = n_runs * n_cells
+    u_arr = np.tile(np.asarray(u, float), (M, 1))
+    x = np.tile(np.asarray(x0, float), (M, 1))
+    eta = np.zeros((M, 2))
+    cur = np.zeros(M, np.int8)          # all start as SC
+    n_steps = int(round(t_max / p.dt))
+    for s in range(n_steps):
+        x, eta = single_cell_step(x, u_arr, eta, p, p.dt, rng)
+        new = classify(x)
+        keep = new < 0
+        cur = np.where(keep, cur, new)
+    # end-state ratios per run
+    counts = np.stack([np.mean(cur.reshape(n_runs, n_cells) == t, axis=1)
+                       for t in (0, 1, 3)], axis=1)
+    return counts * 100.0               # (n_runs, 3)

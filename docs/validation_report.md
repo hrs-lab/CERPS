@@ -40,21 +40,30 @@ are within Monte-Carlo error for 30 runs.
 The authors' C++ program was compiled from the released sources
 (`g++ -O2`) and run with our checkpointing driver (`main_ref.cpp`, which
 reorders nothing but completes the same 30 runs x 5 m2 values x 4000 h
-sweep of `Test()`).  Comparison at m2 = 0.8 (all 30 C++ runs vs 30 Python
-runs):
+sweep of `Test()`).  Full-30-run comparison at the sweep endpoints:
 
-| statistic | C++ (30 runs) | Python (30 runs) |
-|---|---|---|
-| total cells | 7026.5 | 7158.5 |
-| SC         | 176.3  | 176.8 |
-| TA1        | 3456.3 | 3495.8 |
-| TA2        | 3394.0 | 3486.0 |
-| SC->SC / SC->TA1 / SC->TA2 (%) | 73.98 / 13.26 / 12.76 | 73.99 / 12.99 / 13.02 |
+| statistic (30 vs 30 runs) | m2 = 0.8 C++ | m2 = 0.8 Python | m2 = 0.9 C++ | m2 = 0.9 Python |
+|---|---|---|---|---|
+| total cells | 7096 | 7159 | 1203 | 1166 |
+| SC          | 177  | 177  | 667  | 661  |
+| TA1         | 3470 | 3496 | 271  | 251  |
+| TA2         | 3449 | 3486 | 265  | 253  |
+| max transition-matrix difference | 0.14 pp | - | 0.09 pp | - |
 
-The counts differ by < 3% (within run-to-run spread; SEM of the 30-run
-mean is ~60 cells), and the transition matrix agrees; the small TA1/TA2
-asymmetry in the C++ SC row is a finite-sample effect (the paper's own
-Table 3 shows 12.99/13.07, and the parameters are symmetric).
+Full sweep (all five m2 values, 30 C++ runs vs 30 Python runs):
+
+| m2 | counts C++ (tot,SC,TA1,TA2) | counts Python | max rel. diff | max tran-matrix diff |
+|---|---|---|---|---|
+| 0.800 | 7096, 177, 3470, 3449 | 7159, 177, 3496, 3486 | 1.1% | 0.14 pp |
+| 0.825 | 6627, 344, 3178, 3105 | 6768, 348, 3237, 3183 | 2.5% | 0.08 pp |
+| 0.850 | 4505, 501, 1994, 2010 | 4538, 495, 2032, 2011 | 1.9% | 0.09 pp |
+| 0.875 | 2402, 624, 893, 885 | 2447, 621, 917, 909 | 2.8% | 0.07 pp |
+| 0.900 | 1203, 667, 271, 265 | 1166, 661, 251, 253 | 7.3% | 0.09 pp |
+
+SC counts agree within 0.1-1.3% everywhere; larger relative differences
+occur only for the small TA populations at m2 = 0.9 (absolute
+differences of ~20 cells, within run-to-run spread).  The transition
+matrices agree to <= 0.14 percentage points across the whole sweep.
 
 `reproduction/results/tables/cpp_vs_python.json` contains the full
 comparison including the m2 sweep.
@@ -66,9 +75,14 @@ comparison including the m2 sweep.
 * **Fig. 2B/C/D**: phenotype map over (u1,u2); SC zone for u_i > ~0.34;
   SC duration short near the fold edge (u = 0.34 switches within 100 h)
   and saturating at 100 h deep inside the SC zone.
-* **Fig. 3**: with the epigenetic state fixed, TA cells require
-  sigma above a threshold to appear; TA ratios at high sigma approach the
-  stationary basin occupancy (see `results/tables/fig3_ratios.csv`).
+* **Fig. 3** (noise-induced differentiation, epigenetic state fixed,
+  100 cells x 100 runs x 1000 h, 21-point sigma grid): the emergence
+  thresholds match the paper exactly - TA cells first appear at
+  sigma = 0.15 for (u1,u2) = (0.5,0.5), (0.5,0.6), (0.6,0.5) and at
+  sigma = 0.25 for (0.6,0.6) ("TA cells appear only when sigma > 0.15 /
+  > 0.25", Sec. 3.1); at sigma = 1 the composition plateaus at
+  SC ~16%, TA1 ~42%, TA2 ~42% for (0.5,0.5), matching the paper's
+  high-noise plateau.  See `results/tables/fig3_ratios.csv`.
 * **Fig. 4** homeostasis composition (30 runs, 2000 h):
 
   | (alpha1, alpha2) | total | SC | TA1 | TA2 | paper |
@@ -102,8 +116,39 @@ comparison including the m2 sweep.
   TA1-init success stays low (0-15%) for all a_TF; TA2-init success rises
   2% -> 94% with a_TF; success time TA1 ~500-750 h, TA2 ~544-595 h for
   a_TF >= 0.4 (paper: ~700 h and ~500 h).
-* **Fig. 12/13**: see `results/tables/fig12_tf_effect.csv` and the
-  landscape figure (regenerated from the same batches).
+* **Fig. 10** (asymmetric parameters, six series over the m2 sweep):
+  all eight directional claims of Sec. 3.4.2 are reproduced - k1 = 1.1
+  and s1 = 0.55 raise SC->TA2 (13.0 -> 17.5%) and lower TA2->SC
+  (1.55 -> 0.42/0.38%), alpha1 = 0.44 and rho1 = 0.11 do the opposite
+  (SC->TA2 9.9/12.9%, TA2->SC 2.96/3.06%), b1 = 1.1 has almost no
+  effect, with magnitudes matching the published bars.
+* **Fig. 12**: a_TF raises TA1 and lowers TA2 numbers/ratios, leaves
+  self-renewal unchanged, decreases SC->TA2, increases TA2->SC and
+  TA2->TA1, decreases TA1->TA2 (see
+  `results/tables/fig12_tf_effect.csv`).
+* **Fig. 13**: Waddington landscapes U(t, z) for the sigma / m2 / a_TF
+  sweeps; m2 and a_TF reshape the landscape while sigma leaves it
+  essentially unchanged, as in the paper.
+
+## 3b. Independent-engine agreement (numba vs NumPy reference)
+
+30 replicates with each engine (identical protocol, different RNG):
+
+| statistic | reference | numba | rel. diff |
+|---|---|---|---|
+| total | 7215 | 7159 | 0.8% |
+| SC | 177.0 | 176.8 | 0.13% |
+| TA1 | 3542 | 3496 | 1.3% |
+| TA2 | 3496 | 3486 | 0.3% |
+| max transition-matrix difference | | | 0.10 pp |
+
+(Both engines also reproduce the paper's Table 3 SC row to < 0.15 pp.)
+Two implementation bugs were found and fixed during this
+cross-validation, illustrating its value: (i) the reference engine
+re-typed proliferating cells (the C++ freezes the phenotype from
+proliferation entry to mitosis), which created rare immortal lineages;
+(ii) the fast engine skipped creating the second daughter in
+fixed-epigenetic-state divisions (Fig. 3 protocol).
 
 ## 4. CERPS cross-validation
 

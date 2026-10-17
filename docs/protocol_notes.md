@@ -79,6 +79,23 @@ from `Beta(m0 phi, m0 (1-phi))` with phi evaluated at the mother's state.
 * Fig. 13: U(t, z) = -log f(t, z), z = x1 - x2, time window 0-1000 h,
   pooled over the 30 runs of the sweeps above.
 
+## Fig. 3 protocol interpretation
+
+"With an initial population of 100 stem cells and a simulation duration
+of 1000 h" and "in the absence of epigenetic state changes": we
+interpret Fig. 3 as pure intracellular dynamics of 100 initially
+SC-attractor cells with u fixed (no cell-cycle events).  Evidence:
+(a) with cell-cycle dynamics the TA pool would amplify to 10^4-10^5
+cells per run at large sigma (a single noise-driven SC->TA escape
+amplifies ~200x through the 15-division TA transit), which contradicts
+the smooth, gradually emerging TA ratios of the figure and would have
+been computationally impractical for the authors; (b) the reported
+emergence thresholds (sigma = 0.15 / 0.25) are reproduced exactly by the
+escape-fraction interpretation (TA ratio = fraction of the 100 cells
+that have left the SC basin by t = 1000 h); (c) the high-sigma plateau
+(SC ~16%, TA1 ~42%, TA2 ~42% at u = (0.5,0.5)) matches the stationary
+basin occupancy of the noise-driven 2-gene system.
+
 ## Reproducibility of the reference runs
 
 `original_repo` (not redistributed here; see the README) runs 30 runs

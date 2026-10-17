@@ -36,7 +36,7 @@ M2S_FIG9 = [0.8, 0.825, 0.85, 0.875, 0.9]
 ATF_FIG12 = [0.0, 0.05, 0.1, 0.15, 0.2]
 ATF_FIG11 = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
 US_FIG3 = [(0.5, 0.5), (0.5, 0.6), (0.6, 0.5), (0.6, 0.6)]
-SIGMAS_FIG3 = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+SIGMAS_FIG3 = [round(0.05 * i, 2) for i in range(21)]
 VARIANTS_FIG10 = dict(k1=1.1, alpha1=0.44, rho1=0.11, b1=1.1, s1=0.55)
 
 
@@ -117,14 +117,18 @@ def job_fig7(sigma, m2, seed=700):
 
 
 def job_fig3(u_pair, sigma, seed=800):
+    """Fig. 3: noise-induced differentiation with the epigenetic state
+    fixed - pure gene dynamics without cell-cycle events (see
+    docs/protocol_notes.md for the interpretation)."""
+    from hsl2024.single_cell import fixed_u_end_ratios
     p = DEFAULT.with_(sigma=sigma)
     x0 = _sc_x0(u_pair, p)
-    res = simulate(p, n_runs=100, n_steps=STEPS_1000H, seed=seed,
-                   init_mode=1, fixed_u=True, u_init=u_pair, x_init=x0,
-                   rec_tran_from=10 ** 9, cap_per_run=20000)
-    return dict(kind="fig3", xval=sigma, sys_ts=res["sys_ts"],
-                stop_step=res["stop_step"],
-                u=u_pair, x0=x0)
+    ratios = fixed_u_end_ratios(u_pair, x0, p, t_max=1000.0, n_runs=100,
+                                n_cells=100, seed=seed)
+    return dict(kind="fig3", xval=sigma,
+                ratios=ratios.mean(axis=0),
+                ratios_std=ratios.std(axis=0, ddof=1),
+                per_run=ratios, u=np.asarray(u_pair), x0=np.asarray(x0))
 
 
 def job_fig11(which, atf, seed=900):
@@ -149,7 +153,7 @@ def job_fig11c(atf=0.2, seed=950):
     x0 = _ta_x0(u, p, "TA2")
     res = simulate(p, n_runs=10, n_steps=STEPS_1000H * 2, seed=seed,
                    init_mode=2, u_init=u, x_init=x0,
-                   rec_tran_from=10 ** 9, cap_per_run=20000)
+                   rec_tran_from=10 ** 9, cap_per_run=80000)
     return dict(kind="fig11c", xval=atf, sys_ts=res["sys_ts"],
                 stop_step=res["stop_step"])
 

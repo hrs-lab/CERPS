@@ -30,12 +30,11 @@ def main():
             if z is None:
                 sc.append(np.nan); ta1.append(np.nan); ta2.append(np.nan)
                 continue
-            final = z["sys_ts"][-1]                    # (runs, 4)
-            tot = final[:, 0].astype(float)
-            r = 100.0 * final[:, 1:] / tot[:, None]
-            sc.append(r[:, 0].mean()); ta1.append(r[:, 1].mean())
-            ta2.append(r[:, 2].mean())
-            table.append((u_pair, s, *r.mean(axis=0)))
+            r = z["ratios"]                           # (SC, TA1, TA2) %
+            sc.append(float(r[0])); ta1.append(float(r[1]))
+            ta2.append(float(r[2]))
+            table.append((u_pair[0], u_pair[1], s,
+                          float(r[0]), float(r[1]), float(r[2])))
         ax.stackplot(SIGMAS_FIG3, sc, ta1, ta2,
                      colors=[St.C_SC, St.C_TA1, St.C_TA2], alpha=0.9)
         ax.set_title(f"$u_1$={u_pair[0]:g}$, $u_2$={u_pair[1]:g}$",

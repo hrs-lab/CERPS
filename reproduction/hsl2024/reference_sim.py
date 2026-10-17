@@ -116,7 +116,10 @@ def simulate_reference(p: Params, n_runs=1, n_steps=16000, seed=0,
 
         resting = (stage == REST) | (stage == NEWBORN)
         old_type = ctype
-        ctype = _classify(x, ctype)
+        # phenotype is re-evaluated only for resting cells (as in the C++
+        # code: the type is frozen from proliferation entry to mitosis)
+        new_type = _classify(x, ctype)
+        ctype = np.where(resting, new_type, ctype)
         div[resting & (ctype == 0)] = 0
 
         # ---- transition records (vectorised) -------------------------------
