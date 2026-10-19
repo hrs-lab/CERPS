@@ -184,3 +184,13 @@ fixed-epigenetic-state divisions (Fig. 3 protocol).
 * All batch outputs are checkpointed under
   `reproduction/results/data/` and are deterministic given the seeds
   recorded in `reproduction/scripts/common.py`.
+
+## 4. Table 3 行级（bit-level）复现性说明（审计问题 #16）
+
+**结论：表 3 数据在统计意义下可复现，但不存在位级（bit-level）复现。此条已作为已知限制关闭，非代码缺陷。**
+
+- **统计可复现**：用仓库协议（30 runs, 4000 h, `seed=100`）重算表 3，与入库值最大差 **0.087 pp**（SC→SC 73.9016 vs 入库 73.9885）；总转移事件数约 1.57×10⁷。该差异与仓库自报的引擎间涨落（≤0.14 pp）同量级，属蒙特卡洛误差范围。
+- **非位级复现**：相同协议、相同种子下，逐位结果随 **numba / llvmlite 版本**变化。根因是 `njit` 编译路径内的 RNG 流（及其与数组布局/线程化的耦合）对编译器版本敏感；原始入库数据由（可能不同的）numba 版本生成，故无法逐位还原。
+- **缓解措施（已实施）**：`requirements.txt` 已将 `numba` 钉为 `==0.65.0` 并固定 `numpy`/`scipy`；生成任何入库数据时**必须记录所用的 numba/numpy/llvmlite 版本**（见 `docs/audit_2026-10-19.md` 顶部环境记录）。
+- **使用约定**：跨版本比较表 3 时，只比对到统计精度（≤0.15 pp），不要求逐位一致；发布入库数据须随附环境版本清单。
+

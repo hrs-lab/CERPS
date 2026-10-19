@@ -99,7 +99,8 @@ def classify_legacy(grn, x, prev, thr):
     return t
 
 
-def rates(grn, x, u, cfg_rates, div_count, Q_soft, rho_local=None):
+def rates(grn, x, u, cfg_rates, div_count, Q_soft, rho_local=None,
+          mem=None, mem_couple=0.0):
     """Return (beta, kappa, mu, tau, senesce_at_mitosis_bool).
 
     beta/kappa/mu/tau: arrays (n_cells,).
@@ -129,6 +130,11 @@ def rates(grn, x, u, cfg_rates, div_count, Q_soft, rho_local=None):
     if rho_local is not None:
         inh = np.maximum(rho_local - r.rho0, 0.0)
         beta = beta * r.theta_rho / (r.theta_rho + inh)
+    # P6 coupling: history-dependent memory modulates the proliferation rate.
+    # mem in [0,1] (leaky integrator of stemness), centred at 0.5 so the
+    # default is neutral; mem_couple == 0 leaves beta untouched.
+    if mem is not None and mem_couple != 0.0:
+        beta = beta * (1.0 + mem_couple * (mem - 0.5))
     kappa = r.kappa0 * (1.0 + HnS)
     mu = np.full(n, r.mu0)
     tau = r.tau0 * (0.5 + 0.5 * HS)
@@ -136,12 +142,31 @@ def rates(grn, x, u, cfg_rates, div_count, Q_soft, rho_local=None):
     return beta, kappa, mu, tau, senesce
 
 
-def legacy_rates(labels, Q_sc, cfg_rates):
+def legacy_rates(labels, Q_sc, cfg_rates, mem=None, mem_couple=0.0):
     """Table-1 kinetics for the discrete mode (labels: 0 SC, 1 TA1, 3 TA2)."""
     r = cfg_rates
     is_sc = labels == 0
     beta = np.where(is_sc, r.beta0 * r.theta0 / (r.theta0 + Q_sc), r.beta0)
+    # P6 coupling (see rates() for semantics)
+    if mem is not None and mem_couple != 0.0:
+        beta = beta * (1.0 + mem_couple * (mem - 0.5))
     kappa = np.where(is_sc, r.kappa0, 2.0 * r.kappa0)
     mu = np.full(labels.shape, r.mu0)
     tau = np.where(is_sc, r.tau0, 0.5 * r.tau0)
     return beta, kappa, mu, tau
+
+
+def effective_niche_signal(hist, step, delay_steps, current):
+    """Return the niche (stem-cell) signal delayed by ``delay_steps`` steps.
+
+    ``hist`` is the per-step history list, with ``hist[s]`` the signal at
+    simulation step ``s``.  When ``step < delay_steps`` the delayed value is
+    not yet available, so we fall back to ``current`` (no effective delay
+    yet).  ``delay_steps == 0`` reproduces the instantaneous (paper)
+    behaviour exactly.  This is the single point where the P8 feedback-time
+    delay is injected; it is orthogonal to classification, kernels and the
+    spatial modules.
+    """
+    if delay_steps is None or delay_steps <= 0 or step < delay_steps:
+        return current
+    return hist[step - delay_steps]

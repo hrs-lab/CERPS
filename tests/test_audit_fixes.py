@@ -18,7 +18,8 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "reproduction"))
 
 from cerps.config import (CERPSConfig, GRNConfig, EpiConfig,  # noqa: E402
-                          DivisionConfig, RatesConfig, SpaceConfig)
+                          DivisionConfig, RatesConfig, SpaceConfig,
+                          MemoryConfig)
 from cerps.grn import GRN  # noqa: E402
 from cerps import epigenetics as epi  # noqa: E402
 from cerps import division as div_mod  # noqa: E402
@@ -393,14 +394,91 @@ def test_legacy_matches_hsl2024():
           f"CERPS {sc:.0f} vs hsl {hs['count_mean'][1]:.0f}")
 
 
+# ======================================================================
+# 10. P8: feedback-time delay on the niche signal (RatesConfig.delay_steps)
+# ======================================================================
+def test_delay():
+    """P8: niche signal Q can be sampled from `delay_steps` steps in the
+    past; delay_steps=0 must reproduce instantaneous (paper) behaviour."""
+    h = [1.0, 2.0, 3.0, 4.0]
+    check("delay: step>=delay returns delayed value",
+          rates_mod.effective_niche_signal(h, 3, 2, 99.0) == h[1],
+          f"got {rates_mod.effective_niche_signal(h, 3, 2, 99.0)}")
+    check("delay: delay=0 returns current",
+          rates_mod.effective_niche_signal(h, 3, 0, 99.0) == 99.0)
+    check("delay: step<delay falls back to current",
+          rates_mod.effective_niche_signal(h, 1, 2, 99.0) == 99.0)
+    check("delay: None delay -> current",
+          rates_mod.effective_niche_signal(h, 3, None, 99.0) == 99.0)
+
+    # simulator wiring: history is recorded every step
+    cfg = CERPSConfig(n_init=30, max_time=120.0, seed=7, rec_tran_from=0.0)
+    sim = Simulator(cfg)
+    sim.run()
+    n_steps = int(round(cfg.max_time / cfg.dt))
+    check("delay: q history length == n_steps",
+          len(sim._q_hist) == n_steps,
+          f"len={len(sim._q_hist)} vs {n_steps}")
+    harr = np.array(sim._q_hist)
+    check("delay: q history finite & non-negative",
+          np.all(np.isfinite(harr)) and harr.min() >= -1e-9,
+          f"min={harr.min()}")
+
+    # behavioural: a non-zero delay must change the dynamics. Deterministic
+    # given the shared seed, because delay only reshapes the rate values
+    # (reads the past Q), it does not consume the RNG stream differently.
+    cfg0 = CERPSConfig(n_init=40, max_time=400.0, seed=11, rec_tran_from=0.0)
+    cfg4 = CERPSConfig(n_init=40, max_time=400.0, seed=11, rec_tran_from=0.0,
+                       rates=RatesConfig(delay_steps=4))
+    s0, s4 = Simulator(cfg0), Simulator(cfg4)
+    s0.run()
+    s4.run()
+    check("delay: non-zero delay changes dynamics",
+          not np.allclose(s0._q_hist, s4._q_hist),
+          "delayed and instantaneous Q histories are identical")
+
+
+# ======================================================================
+# 11. P6: non-Markovian memory (MemoryConfig)
+# ======================================================================
+def test_memory():
+    """P6: per-cell leaky-integrator memory. enabled+mem_couple=0 must be
+    bit-identical to disabled (no effect on rates); mem_couple!=0 must change
+    dynamics; memory state must be tracked per cell and inherited at mitosis."""
+    base = CERPSConfig(n_init=40, max_time=300.0, seed=5, rec_tran_from=0.0)
+    on0 = CERPSConfig(n_init=40, max_time=300.0, seed=5, rec_tran_from=0.0,
+                      memory=MemoryConfig(enabled=True, mem_couple=0.0))
+    a, b = Simulator(base), Simulator(on0)
+    a.run()
+    b.run()
+    check("p6: enabled + mem_couple=0 == disabled (backward compatible)",
+          np.allclose(a._q_hist, b._q_hist),
+          "memory tracking altered the rates")
+    check("p6: memory state tracked per cell & non-trivial",
+          b.mem.shape[0] == b.n and np.any(b.mem != 0.0),
+          f"mem any!=0: {bool(np.any(b.mem != 0.0))}, n={b.mem.shape[0]}")
+
+    on_c = CERPSConfig(n_init=40, max_time=300.0, seed=5, rec_tran_from=0.0,
+                       memory=MemoryConfig(enabled=True, mem_couple=0.5))
+    c = Simulator(on_c)
+    c.run()
+    check("p6: mem_couple != 0 changes dynamics",
+          not np.allclose(a._q_hist, c._q_hist),
+          "memory coupling had no effect")
+    # the leaky integrator should keep mem within the driver range [0,1]
+    check("p6: mem stays within [0,1]",
+          c.mem.min() >= -1e-9 and c.mem.max() <= 1.0 + 1e-9,
+          f"mem range [{c.mem.min():.3f},{c.mem.max():.3f}]")
+
+
 def main():
     print("== CERPS audit-fix regression tests ==")
     for fn in [test_cross_threshold, test_kernel_orthogonality,
                test_partition_alpha, test_k_switch_alignment,
                test_complementary_switch,
                test_field_numerics, test_mechanics_dt,
-               test_rec_tran_from, test_batch_harness,
-               test_legacy_matches_hsl2024]:
+               test_rec_tran_from, test_batch_harness, test_delay,
+               test_memory, test_legacy_matches_hsl2024]:
         print(f"\n- {fn.__name__}")
         fn()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")

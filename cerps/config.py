@@ -108,6 +108,23 @@ class DivisionConfig:
 
 
 # ----------------------------------------------------------------------
+# non-Markovian memory (P6)
+# ----------------------------------------------------------------------
+@dataclass
+class MemoryConfig:
+    # P6: non-Markovian memory via a per-cell leaky integrator (exponentially
+    # weighted moving average) of a driver signal.  enabled=False keeps the
+    # validated baseline: mem stays 0 and is never read by the rates.
+    # mem_couple=0 tracks memory but does not affect kinetics, so the coupling
+    # can be switched on independently of the tracking.  At mitosis the parent's
+    # memory is copied to both daughters (state inheritance).
+    enabled: bool = False
+    tau: float = 10.0                # memory timescale [h] (EWMA window)
+    driver: str = "stemness"         # signal integrated: "stemness" -> S in [0,1]
+    mem_couple: float = 0.0          # coupling of mem into beta (0 = no effect)
+
+
+# ----------------------------------------------------------------------
 # continuous cell kinetics (rate_mode = "continuous")
 # ----------------------------------------------------------------------
 @dataclass
@@ -130,7 +147,13 @@ class RatesConfig:
                                     # (see rates.resolve_K)
     # contact inhibition (spatial; also usable without space via Q feedback)
     theta_rho: float = 12.0         # half-effective neighbour count
-    rho0: float = 6.0               # neighbours before inhibition starts
+    rho0: float = 6.0
+    # --- feedback time delay (P8: non-instantaneous niche sensing) ---
+    # If > 0, the niche signal Q (soft SC count in continuous mode, SC count
+    # in legacy mode) feeding beta_SC is sampled `delay_steps` steps in the
+    # past instead of the current step. 0 = paper (instantaneous) behaviour;
+    # default 0 keeps the validated baseline.
+    delay_steps: int = 0               # neighbours before inhibition starts
 
 
 # ----------------------------------------------------------------------
@@ -171,6 +194,7 @@ class CERPSConfig:
     division: DivisionConfig = field(default_factory=DivisionConfig)
     rates: RatesConfig = field(default_factory=RatesConfig)
     space: SpaceConfig = field(default_factory=SpaceConfig)
+    memory: MemoryConfig = field(default_factory=MemoryConfig)
     # protocol
     dt: float = 0.25
     n_init: int = 100

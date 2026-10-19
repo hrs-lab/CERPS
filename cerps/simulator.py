@@ -59,6 +59,8 @@ class Simulator:
             self.grn, self.x, np.zeros(n, np.int8),
             cfg.rates.x_threshold)
         self.parent_label = np.zeros(n, np.int8)
+        # P6 non-Markovian memory: per-cell leaky integrator state (init 0)
+        self.mem = np.zeros(n)
 
         # space
         self.space = None
@@ -74,6 +76,9 @@ class Simulator:
         self.snapshots = []
         self.transitions = []            # (parent_label, label) at entry
         self.max_cells = 0
+        # niche-signal history for the P8 feedback-time delay; hist[s] is the
+        # (soft) SC count at step s, used by effective_niche_signal()
+        self._q_hist = []
         # resolved stemness-switch threshold (None -> derived from the
         # legacy classification boundary; see rates.resolve_K)
         self.K_switch = rates_mod.resolve_K(cfg.rates, self.grn)
@@ -150,21 +155,40 @@ class Simulator:
                 for pl, cl in zip(self.parent_label[jp], self.label[jp]):
                     self.transitions.append((int(pl), int(cl)))
 
+            # ---- P6 non-Markovian memory: per-cell leaky integrator -------
+            # drv in [0,1]; mem converges to the running mean of the driver
+            # with timescale tau, giving a genuinely history-dependent state.
+            mem_arg = None
+            mem_couple = 0.0
+            if cfg.memory.enabled:
+                drv = rates_mod.stemness(self.grn, self.x)  # per-cell [0,1]
+                self.mem = self.mem + (dt / cfg.memory.tau) * (drv - self.mem)
+                mem_arg = self.mem
+                mem_couple = cfg.memory.mem_couple
+
             # ---- rates ---------------------------------------------------
+            # compute the *current* niche signal for both modes, record it in
+            # the history, then feed the DELAYED value to the kinetics (P8).
             if legacy:
-                Q = float((self.label == 0).sum())
+                q_now = float((self.label == 0).sum())
+            else:
+                S = rates_mod.stemness(self.grn, self.x)
+                q_now = float(rates_mod.hill(
+                    S, self.K_switch, cfg.rates.p_switch).sum())
+            self._q_hist.append(q_now)
+            q_eff = rates_mod.effective_niche_signal(
+                self._q_hist, step, cfg.rates.delay_steps, q_now)
+
+            if legacy:
                 beta, kappa, mu, tau = rates_mod.legacy_rates(
-                    self.label, Q, cfg.rates)
+                    self.label, q_eff, cfg.rates, mem_arg, mem_couple)
                 senesce = (self.div_int + 1 >= cfg.rates.max_div_ta) & \
                     (self.label != 0)
             else:
-                S = rates_mod.stemness(self.grn, self.x)
-                Q_soft = float(rates_mod.hill(
-                    S, self.K_switch, cfg.rates.p_switch).sum())
                 rho_local = self.space.local_density() if contact else None
                 beta, kappa, mu, tau, senesce = rates_mod.rates(
                     self.grn, self.x, self.u, cfg.rates, self.div_count,
-                    Q_soft, rho_local)
+                    q_eff, rho_local, mem_arg, mem_couple)
 
             # ---- fate decisions ------------------------------------------
             r1 = self.rng.random(n)
@@ -213,7 +237,8 @@ class Simulator:
                     div_int=self.div_int[idx].copy(),
                     div_count=self.div_count[idx].copy(),
                     label=self.label[idx].copy(),
-                    parent_label=self.parent_label[idx].copy())
+                    parent_label=self.parent_label[idx].copy(),
+                    mem=self.mem[idx].copy())
                 for key, val in new.items():
                     setattr(self, key, np.concatenate([getattr(self, key),
                                                        val]))
@@ -251,6 +276,7 @@ class Simulator:
                 self.div_int = self.div_int[keep]
                 self.label = self.label[keep]
                 self.parent_label = self.parent_label[keep]
+                self.mem = self.mem[keep]
                 if self.space is not None:
                     self.space.remove(keep)
             self.n = len(self.x)
