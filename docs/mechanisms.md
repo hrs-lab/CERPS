@@ -43,14 +43,14 @@
 
 | 参数 | 位置 | 默认 | 取值 | 依赖/互斥 | 文献依据 | 预期效应方向 `[推断]` | 正交性风险 | 验证 |
 |---|---|---|---|---|---|---|---|---|
-| `regulation` | `GRNConfig.regulation` | `"product"` | product\|additive | — | product：Duddu 2026（J R Soc Interface 23:20251065 式4.5）逐项同构；additive：HSL2024 | G=2 时两式**严格全等**；G≥3 时拓扑不同（product→单高主导，additive→对称）| **⚠️ G≥3 时两种组合给出不同稳态，不可混用对比** | ✅ |
+| `regulation` | `GRNConfig.regulation` | `"product"` | product\|additive | — | product：Duddu 2026（J R Soc Interface 23:20251065 式4.5）逐项同构；additive：HSL2024 | G=2 时两式**严格全等**；G≥3 时拓扑不同（product→**单高主导 `[确证]`**，additive→对称）| **⚠️ G≥3 时两种组合给出不同稳态，不可混用对比**；product 单高主导已为 3-基因扫描实证（docs/multigene_attractors.md：单高~93%）| ✅ |
 | `b_rep` | `GRNConfig.b_rep` | `()` = 全互抑 | 矩阵 | 默认全互抑；自定义边 | — | 抑制强度↑ → 靶基因压低 | 与 `s_self` 协同 | ✅ |
 | `s_self` | `GRNConfig.s_self` | `(0.5,0.5)` | 每基因阈值 | — | HSL2024 式(1) | 阈值↑ → 更难触发表达 | **⚠️ 交叉项阈值用靶基因 `s[j]`（已修）；s1≠s2 时 legacy 精确退化式(1)，可复现论文图10** | ✅ |
 | `c_act` | `GRNConfig.c_act` | `()` | 矩阵 | 与 `b_rep` 并存 | — | 激活边↑ → 靶基因升 | 与 `b_rep` 反向 | ✅ |
 | `a_tf` | `GRNConfig.a_tf` | `(0.0,0.0)` | 每基因 | — | HSL2024 式(9) | 外源 TF↑ → 对应基因表达↑ | 仅作用于被指定基因 | ✅ |
 | `sigma` / `zeta` | `GRNConfig` | `0.05 / 1.0` | — | 驱动 OU 外噪声 | — | `σ↑` 或 `ζ↓` → 表达噪声↑ | OU 是**马氏**过程（见轴 P6）| ✅ |
 
-**四稳态张力**：3 基因全互抑下"全开+3 单高"格局在同拓扑文献缺支持（Duddu 2020：三阳~4%且被排除）。多能核心实为**互激活**（Boyer 2005），建议分层结构。
+**四稳态张力**：3 基因全互抑下"全开+3 单高"格局在同拓扑文献缺支持（Duddu 2020：三阳~4%且被排除）。CERPS 自身 3-基因扫描（docs/multigene_attractors.md）实证：全开仅 ~0.5-1%、单高主导 ~93%、双高尾 ~7%——与 Duddu 统计方向相反，印证"纯互抑网络不能稳健复现全开=干性"隐喻。多能核心实为**互激活**（Boyer 2005），建议分层结构。
 
 ---
 
@@ -111,9 +111,9 @@
 | **P3 组分稀释** | ✅ | `partition`/`alpha`（二项≡α=1）| 完备 |
 | **P4 quorum sensing** | ✅ | `paracrine` 扩散场（+CFL 子步）| 完备 |
 | **P5 状态继承** | ✅ | 四种核 + `div_count` 继承 | 完备 |
-| **P6 非马氏记忆** | ⚠️ 部分→**补** | 新增 `MemoryConfig`（泄漏积分记忆核，见下）| ⬜ 实现中 |
+| **P6 非马氏记忆** | ✅ | 新增 `MemoryConfig`（泄漏积分记忆核，见下）| ✅ 已实现+测试 |
 | **P7 空间耦合** | ✅ | `space.*` 离格 + 接触抑制 | 完备 |
-| **P8 反馈时滞** | ❌→**补** | `RatesConfig.delay_steps` | ⬜ 实现中 |
+| **P8 反馈时滞** | ✅ | `RatesConfig.delay_steps` | ✅ 已实现+测试 |
 
 ---
 
@@ -122,14 +122,14 @@
 ### P8 — 反馈时滞  (`RatesConfig.delay_steps`, 默认 0)
 - **位置**：`cerps/config.py` `RatesConfig`；`cerps/simulator.py` 维护 `self._q_hist`；`cerps/rates.py` 经 `effective_niche_signal()` 取延迟值。
 - **语义**：niche 信号 Q（连续模式 `Q_soft` / legacy 模式 SC 计数）延迟 `delay_steps` 步生效。
-- **预期效应方向 `[推断]`**：正延迟 → 反馈环路引入相位滞后，可能放大振荡或改变稳态 SC 占比（类比 Huh&Paulsson 2011 对延迟负反馈放大波动的结论）。
+- **预期效应方向 `[推断-方向]`**：正延迟 → 反馈环路引入相位滞后，可能放大振荡或改变稳态 SC 占比（类比 Huh&Paulsson 2011）。**机制已落地并测试**（delay_steps=0 退化为基线；>0 时 `self._q_hist` 长度=步数且动力学可测量变化），方向性结论待生物学标定。
 - **正交性**：仅改 Q 的时间取值，不改分类/核；与 `rate_mode`、`paracrine` 正交。
 - **验证**：`delay_steps=0` 与现状逐位一致；`>0` 时 `self._q_hist` 长度 = 步数且动力学可测量变化。
 
 ### P6 — 非马氏记忆  (`MemoryConfig`, 默认 `enabled=False`)
 - **位置**：`cerps/config.py` `MemoryConfig`；`cerps/simulator.py` 维护 `self.mem`（每细胞泄漏积分器）；分裂时继承给两子细胞。
 - **语义**：每细胞维护驱动信号（默认 stemness `S∈[0,1]`）的指数遗忘平均 `mem`；可选经 `mem_couple` 耦合进 `beta`。
-- **预期效应方向 `[推断]`**：`mem_couple>0` 且 mem 偏高（细胞近期多处于干性态）→ 增殖倾向增强；提供跨当前时刻的历史依赖（非马氏成分）。
+- **预期效应方向 `[推断-方向]`**：`mem_couple>0` 且 mem 偏高（细胞近期多处于干性态）→ 增殖倾向增强；提供跨当前时刻的历史依赖（非马氏成分）。**机制已落地并测试**（enabled=False 退化为基线；True 时 mem 演化并被子细胞继承）。
 - **正交性**：`enabled=False` 时 `mem≡0`、速率不变（向后兼容）；与 P8 可叠加（先记忆、后时滞）。
 - **验证**：`enabled=False` 结果与基线一致；`enabled=True` 时 `mem` 随驱动演化并被子细胞继承；`mem_couple≠0` 时动力学改变。
 

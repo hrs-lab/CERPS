@@ -2,8 +2,20 @@
 
 Genes X1, X2, X3 repress each other (all-to-all); the epigenetic
 inheritance kernel is Gaussian and the cell kinetics are continuous.
-The population settles into a homeostasis with four phenotypes:
-the all-on stem-like state and three committed single-gene-high states.
+
+IMPORTANT - empirically measured attractor distribution
+(see docs/multigene_attractors.md, 3-gene all-repression sweep):
+the population does NOT settle into a symmetric four-phenotype
+homeostasis. Single-gene-high states dominate (~93% across seeds),
+a stable double-high tail persists (~7%), and the all-on (stem-like)
+state is rare (~0.5-1%). The "label 0 (all-high by label)" line below
+tracks `label == 0`, which in continuous mode freezes cells as
+all-high at birth and therefore OVER-COUNTS the true all-on fraction;
+the right panel's "3 high (true all-on)" bar shows the actual count of
+cells with all three genes x > 0.5. Genuine steady state also needs
+>= 2000-4000 h, far longer than the 1500 h default.
+
+Gene-to-label map: 0 = all-high (by label), j+1 = gene j high.
 """
 import os
 import sys
@@ -39,11 +51,13 @@ def main(t_max=1500.0):
     snap = sim.snapshots[-1] if sim.snapshots else None
     fig, axs = plt.subplots(1, 2, figsize=(8.4, 3.0))
     ax = axs[0]
-    ax.plot(t, rec["sc"], color="#2e9e2e", label="SC-like (all on)")
+    ax.plot(t, rec["sc"], color="#2e9e2e", label="label 0 (all-high by label)")
     ax.plot(t, rec["ta1"], color="#1f4fd8", label="X1 high")
     # NOTE: for G > 2 the recorder keeps the paper's field names, but the
     # label codes are 0 = all-high, j+1 = gene j high.  Hence "ta2" holds
     # label 3 = X3-high and "other" holds label 2 = X2-high.
+    # CAUTION: in continuous mode `label == 0` is frozen at birth and
+    # over-counts the true all-on state (see docs/multigene_attractors.md).
     ax.plot(t, rec["other"], color="#31c6f2", label="X2 high")
     ax.plot(t, rec["ta2"], color="#d62728", label="X3 high")
     ax.plot(t, rec["total"], "--", color="#555555", label="Total")
@@ -56,7 +70,7 @@ def main(t_max=1500.0):
         x = snap["x"]
         high = x > 0.5
         n_hi = high.sum(axis=1)
-        cats = ["all-low", "1 high", "2 high", "3 high (SC)"]
+        cats = ["all-low", "1 high", "2 high", "3 high (true all-on)"]
         counts = [np.sum(n_hi == j) for j in range(4)]
         ax.bar(range(4), counts, color=["#999", "#1f4fd8", "#888",
                                         "#2e9e2e"])
@@ -67,7 +81,9 @@ def main(t_max=1500.0):
     fig.tight_layout()
     os.makedirs(OUT, exist_ok=True)
     fig.savefig(os.path.join(OUT, "cerps_example_3gene.png"), dpi=200)
-    print("final total:", rec["total"][-1], " SC-like:", rec["sc"][-1])
+    print("final total:", rec["total"][-1],
+          " label-0 (all-high-by-label):", rec["sc"][-1],
+          " (NOTE: over-counts true all-on; see docs/multigene_attractors.md)")
 
 
 if __name__ == "__main__":
