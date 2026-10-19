@@ -32,9 +32,9 @@ Each row is a *real* dataset whose published findings nominate specific CERPS pr
 Triple scoring: **Priority = 0.4·Novelty + 0.35·Data + 0.25·Falsifiability** (each 1–5). Novelty reflects residual gap after the adversarial gate in `novelty_register.md`.
 
 ### C1 — Niche feedback with delayed response  (P1 × P8)
-- **Combination (real API):** niche S-block `h_ref_S` / `rho_S` / `KS` / `hS` (P1) × **P8 delay — NOT IMPLEMENTED in this CERPS version** (no `delay_steps`; see Honesty Flag in `cerps_sbi/__init__.py`).
+- **Combination (real API):** niche S-block `h_ref_S` / `rho_S` / `KS` / `hS` (P1) × **P8 delay — implemented in the `cerps/` framework via `RatesConfig.delay_steps`**, though **absent from the `cerps_model` kernel** on which the sweeps below ran (see `api-clarification.md`).
 - **Nomination basis (real):** GSE81682 pseudotime shows branch-specific temporal programs; Dray et al. 2021 (*Cell Stem Cell*, PMID 33823144) demonstrates a **9–12 day delayed dispersion effect** among neural stem cells — establishing delayed feedback as a real niche mechanism *in a different stem-cell system*. The HSC-specific delayed-niche-feedback instantiation is our novel angle.
-- **Falsifiable H (H2):** *If* the niche-feedback loop drives HSC quiescence, *then* varying the niche epigenetic-reference strength `h_ref_S` (P1) in CERPS anchored on `legacy_config()` changes the cycling fraction and epigenetic-state spread consistent with CARLIN clonal dynamics. The **P8 delay sub-hypothesis requires a code extension** (add a delay buffer to `simulate_cerps`) and is **flagged, not verified**. `[verified-prod §7: P1 effect real and large — term_death +145% (124k→305k), N_final −26%; P8 delay still PROPOSED-UNIMPLEMENTED]`
+- **Falsifiable H (H2):** *If* the niche-feedback loop drives HSC quiescence, *then* varying the niche epigenetic-reference strength `h_ref_S` (P1) in CERPS anchored on `legacy_config()` changes the cycling fraction and epigenetic-state spread consistent with CARLIN clonal dynamics. The **P8 delay sub-hypothesis is directly testable in `cerps/`** via `RatesConfig.delay_steps`; it has **not** been exercised here because these sweeps ran on the `cerps_model` kernel — it is therefore **unverified, not impossible**. `[verified-prod §7: P1 effect real and large — term_death +145% (124k→305k), N_final −26%; P8 delay available in `cerps/` but NOT yet exercised in these sweeps]`
 - **Scores:** Novelty 4 · Data 3 · Falsifiability 5 → **Priority 3.90**.
 
 ### C2 — Epigenetic inheritance + non-Markovian memory  (P5 × P6)
@@ -73,7 +73,7 @@ No 🔴 (substantive scooping) or un-argued 🟠 entries were found → all four
 ## 4. Falsifiability / execution checklist (maps to Runbook)
 
 - [x] Calibrate on `legacy_config()` anchor (CERPS_DEFAULTS + locked spatial BASE) using GSE81682/GSE89433 scRNA initial states + CARLIN clone fractions (Runbook `03_build_config` + `04_calibrate` via `analysis/src/abc.py`).
-- [x] C1: verification sweep DONE over niche axis `h_ref_S ∈ {0.0, 0.40, 1.20}` (P1 real). **P8 delay axis NOT RUN — `delay_steps` absent from code** (flagged as proposed extension in `cerps_sbi`).
+- [x] C1: verification sweep DONE over niche axis `h_ref_S ∈ {0.0, 0.40, 1.20}` (P1 real). **P8 delay axis NOT RUN** — available in `cerps/` via `RatesConfig.delay_steps`, absent from the `cerps_model` kernel used here.
 - [x] C2: verification sweep DONE over `kappa_a ∈ {0.0, 0.03, 0.15}` (P6 memory-of-age); `term_death`, `N_final`, u-spread measured.
 - [x] C3: verification sweep DONE over `s_part ∈ {0.0, 0.06, 0.15}` (P3 partitioning); std(GATA1/SPI1) and lineage-bias spread measured.
 - [x] C4: verification sweep DONE over GRN cross-repression `b ∈ {(0.3,0.3,1.2,1.2),(1,1,1.2,1.2),(3,3,1.2,1.2)}`; attractor fractions (G-only / P-only / both-on) quantified from snapshots.
@@ -124,7 +124,7 @@ No 🔴 (substantive scooping) or un-argued 🟠 entries were found → all four
 
 ### 7.3 What remains open
 
-1. **P8 delay (C1):** implement `delay_steps` (code extension) before any delayed-feedback claim — the primitive is still absent from the kernel.
+1. **P8 delay (C1):** available **now** in `cerps/` (`RatesConfig.delay_steps`, `rates.effective_niche_signal()`); run the C1 delay sweep there before making any delayed-feedback claim. It was absent only from the `cerps_model` kernel used for the sweeps above.
 2. **C3:** add clone-ID / within-clone variance tracking to test partitioning at clone level; bulk metrics are now demonstrably insensitive (≈1–4 % versus 145 % for C1).
 3. **Re-centre C1:** the (degenerate) ABC posterior prefers `h_ref_S ≈ 0.64–0.80`, while the sweep used {0.0, 0.40, 1.20} — add a level near 0.75 to bracket it (`calibration-report.md` §5).
 4. **Calibration:** non-convergent, so **no `[derived]` tag may be claimed** (`calibration-report.md`). Hold-out 2-Wasserstein / PPC gating is not satisfiable until a usable posterior exists.

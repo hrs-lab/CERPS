@@ -21,10 +21,13 @@ HONESTY NOTES (project "honesty boundary" — do NOT fake numerical results)
 * There is NO `legacy_config()` class. The calibrated anchor = CERPS_DEFAULTS
   merged with the LOCKED manuscript spatial config BASE (the config used by
   analysis/src/abc.py and analysis/src/mechanism_scan.py).
-* P8 (feedback delay) is NOT implemented in this CERPS version. There is no
-  `delay_steps`. Any candidate depending on a delay primitive (C1) can only be
-  partially verified: the P1 (niche) axis is real; the P8 (delay) axis is a
-  PROPOSED code extension and is flagged, never silently simulated.
+* P8 (feedback delay) is NOT implemented **in this `cerps_model` kernel** — there
+  is no `delay_steps` here, so any delay axis must be simulated elsewhere.
+  Scope note (2026-10-20): the class-based `cerps/` framework in the same project
+  DOES implement P8 via `RatesConfig.delay_steps` + `rates.effective_niche_signal()`.
+  Candidates relying on a delay primitive (C1) are therefore testable in `cerps/`;
+  the sweeps produced by THIS adapter run on the `cerps_model` kernel and cannot
+  exercise delay. See docs/paper-workflow/api-clarification.md.
 * Memory (P6) = the `epa` (epigenetic-age) accumulator, gated by `kappa_a`
   (accelerates death with divisional age) and `div_death_age`.
 * Partitioning (P3) = `s_part` (expression partitioning noise at mitosis).

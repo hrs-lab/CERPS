@@ -53,7 +53,7 @@ No 🔴/🟠 without written argument → all domain priors are **controllable**
 - **Real hit.** **Dray et al. 2021**, *Cell Stem Cell* 28(8):1457–1472 (PMID 33823144): in **neural** stem cells, a dividing-NSC dispersion effect is exerted with a **9–12 day delay**; a stochastic lattice model reproduces self-propagating homeostasis.
 - **Verdict.** 🟡 adjacent, controllable.
 - **Difference argument.** Dray et al. is **neural**, not hematopoietic, and models a *physical dispersion* delay; we model a **transcriptional/niche-feedback delay** in HSC quiescence–activation oscillation. **[Honesty flag: `delay_steps` is NOT in this CERPS version — the P8 delay axis is a proposed code extension, not yet simulated; only the P1 niche axis is verifiable.]` Cite Dray 2021 as the conceptual precedent and explicitly delimit system & feedback modality. HSC-specific delayed-feedback instantiation remains open.
-- **Status.** `[verified-prod §7: P1 axis verified at production scale — term_death +145% (124k→305k), N_final −26%; P8 delay still requires the delay_steps code addition]`.
+- **Status.** `[verified-prod §7: P1 axis verified at production scale — term_death +145% (124k→305k), N_final −26%; P8 delay IS already available in `cerps/` via `RatesConfig.delay_steps` — next step is to exercise it, not to add it]`.
 
 ### N2 — Non-Markovian epigenetic memory (P6)  [Candidate C2]
 - **Search.** `"epigenetic memory hematopoietic stem cell fate bias"`; `"non-Markovian history-dependent fate"`.
