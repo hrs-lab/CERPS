@@ -21,7 +21,7 @@ from cerps_sbi import legacy_config, run_one, NG  # noqa
 VERIFY = dict(T=1500.0, n_init=200, seeds=(3, 11))
 PROD   = dict(T=4000.0, n_init=600, seeds=(3, 11, 21))
 
-CUR = VERIFY  # switch to PROD for the paper-scale run
+CUR = PROD   # PROD-scale run for the paper (T=4000, n_init=600, 3 seeds)
 
 SNAP_AT = 0.95  # fraction of T for the attractor snapshot
 
@@ -120,8 +120,9 @@ def main():
     out["aggregate"] = agg
     out["elapsed_s"] = round(time.time() - t0, 1)
 
+    fname = "candidate_sweep_v2.json" if CUR is PROD else "candidate_sweep_v1.json"
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "..", "results", "candidate_sweep_v1.json")
+                        "..", "results", fname)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(out, f, indent=2)
