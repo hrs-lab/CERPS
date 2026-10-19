@@ -18,7 +18,7 @@ Two modes:
                   beta   = beta0 * [1 - H_S(S) * (1 - theta0/(theta0 + Q))]
                            with Q = sum_cells H_S(S) (soft SC count);
                            => SC: beta0*theta/(theta+Q), TA: beta0
-                  kappa  = kappa0 * (1 + H_S(1 - S))
+                  kappa  = kappa0 * (1 + H_{1-K}(1 - S))
                            => SC: kappa0, TA: 2 kappa0
                   tau    = tau0 * (0.5 + 0.5 * H_S(S))
                            => SC: tau0, TA: tau0/2
@@ -31,6 +31,14 @@ Two modes:
                               never accumulate (and dedifferentiation
                               resets the counter), as in the C++ code.
 
+Here H_S(v) = v^p/(K^p + v^p) is the steep Hill switch and K is the
+stemness threshold (``K_switch``; ``None`` derives it so that the
+continuous boundary coincides with the legacy ``x_threshold`` on the
+diagonal -- see ``resolve_K``).  The TA-side switches use the
+COMPLEMENTARY threshold 1-K, so that both sides fire at the same S = K;
+using K on both sides (as an earlier version did) is correct only when
+K = 0.5 and leaves stem-like cells with the TA removal rate otherwise.
+
 Contact inhibition (spatial mode) multiplies beta by
 theta_rho/(theta_rho + max(0, rho_local - rho0)).
 """
@@ -39,6 +47,30 @@ import numpy as np
 
 def hill(v, K, p):
     return v ** p / (K ** p + v ** p)
+
+
+def resolve_K(cfg_rates, grn):
+    """Effective Hill threshold of the stemness switch.
+
+    ``K_switch=None`` (the default) derives the threshold that puts the
+    continuous classification boundary on the *legacy* one.  Legacy
+    declares a cell SC when every gene exceeds ``x_threshold``, i.e. when
+    the stemness S = prod_j H+(x_j) reaches prod_j H+(x_threshold); using
+    that value as K makes the two rules agree on the diagonal
+    x_1 = ... = x_G = x_threshold.
+
+    The two rules can still disagree off the diagonal: the legacy rule is
+    a conjunction of per-gene thresholds (a box in x-space), whereas the
+    product rule is a curved region.  With the default parameters the
+    disagreement covers ~8% of the (x1, x2) plane -- unavoidable for any
+    single-threshold smoothing of a box.
+    """
+    K = getattr(cfg_rates, "K_switch", None)
+    if K is not None:
+        return float(K)
+    G = grn.G
+    return float(grn.activation_levels(
+        np.full((1, G), cfg_rates.x_threshold)).prod())
 
 
 def stemness(grn, x):
@@ -83,8 +115,16 @@ def rates(grn, x, u, cfg_rates, div_count, Q_soft, rho_local=None):
         # see simulator: legacy mode uses classify_legacy internally)
         raise NotImplementedError("use legacy_rates() instead")
     S = stemness(grn, x)
-    HS = hill(S, r.K_switch, r.p_switch)
-    HnS = hill(1.0 - S, r.K_switch, r.p_switch)
+    K = resolve_K(r, grn)
+    HS = hill(S, K, r.p_switch)
+    # NOTE: the "not stem-like" switch must use the COMPLEMENTARY
+    # threshold 1-K, not K.  With the same K the two switches fire at
+    # S = K and S = 1-K respectively, so any K != 0.5 leaves a band in
+    # which a cell is neither properly SC-like nor properly TA-like --
+    # e.g. at K = 0.125 a stem-like cell with S = 0.5 receives the TA
+    # removal rate kappa = 2*kappa0.  The original hard-coded default
+    # K_switch = 0.5 made 1-K == K and hid this.
+    HnS = hill(1.0 - S, 1.0 - K, r.p_switch)
     beta = r.beta0 * (1.0 - HS * (1.0 - r.theta0 / (r.theta0 + Q_soft)))
     if rho_local is not None:
         inh = np.maximum(rho_local - r.rho0, 0.0)

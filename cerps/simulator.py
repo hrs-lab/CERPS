@@ -74,6 +74,9 @@ class Simulator:
         self.snapshots = []
         self.transitions = []            # (parent_label, label) at entry
         self.max_cells = 0
+        # resolved stemness-switch threshold (None -> derived from the
+        # legacy classification boundary; see rates.resolve_K)
+        self.K_switch = rates_mod.resolve_K(cfg.rates, self.grn)
 
     # ------------------------------------------------------------------
     def _record(self, t, stem_frac=None):
@@ -120,19 +123,30 @@ class Simulator:
             if cfg.epi.continuous:
                 self.u = epi.continuous_step(self.u, act, cfg.epi, dt)
 
-            # ---- phenotype labels (dynamics use them only in legacy) ---
+            # ---- phenotype labels -----------------------------------------
+            # Protocol (paper Sec. 2.3 numerical scheme, C++ UpdateCellType,
+            # hsl2024.reference_sim): the phenotype is re-evaluated ONLY
+            # while the cell is in the resting phase (stages 0/3); it is
+            # frozen from proliferation entry to mitosis.  Updating it for
+            # proliferating cells as well changes the SC count Q during the
+            # cycle, which biases beta_SC = beta0*theta/(theta+Q) upward and
+            # inflates SC self-renewal by ~2.4 pp (see audit report 4.5).
             old_label = self.label
-            self.label = rates_mod.classify_legacy(
+            new_label = rates_mod.classify_legacy(
                 self.grn, self.x, self.label, cfg.rates.x_threshold)
+            self.label = np.where(resting, new_label, self.label)
             if legacy:
-                # C++ rule: a resting cell classified as SC resets its
+                # C++ rule: a RESTING cell classified as SC resets its
                 # division counter (dedifferentiation restores potential)
-                self.div_int[self.label == 0] = 0
-                self.div_count[self.label == 0] = 0.0
+                sc_rest = resting & (self.label == 0)
+                self.div_int[sc_rest] = 0
+                self.div_count[sc_rest] = 0.0
 
             # ---- transition records at proliferation entry -------------
+            # rec_tran_from discards the transient (paper protocol: only
+            # Step > 8000, i.e. t > 2000 h of a 4000 h run, is counted).
             jp = self.stage == JUST_PROLIF
-            if jp.any():
+            if jp.any() and t >= cfg.rec_tran_from:
                 for pl, cl in zip(self.parent_label[jp], self.label[jp]):
                     self.transitions.append((int(pl), int(cl)))
 
@@ -146,7 +160,7 @@ class Simulator:
             else:
                 S = rates_mod.stemness(self.grn, self.x)
                 Q_soft = float(rates_mod.hill(
-                    S, cfg.rates.K_switch, cfg.rates.p_switch).sum())
+                    S, self.K_switch, cfg.rates.p_switch).sum())
                 rho_local = self.space.local_density() if contact else None
                 beta, kappa, mu, tau, senesce = rates_mod.rates(
                     self.grn, self.x, self.u, cfg.rates, self.div_count,
@@ -184,7 +198,7 @@ class Simulator:
                 if not legacy:
                     HS = rates_mod.hill(
                         rates_mod.stemness(self.grn, self.x[idx]),
-                        cfg.rates.K_switch, cfg.rates.p_switch)
+                        self.K_switch, cfg.rates.p_switch)
                     self.div_count[idx] += (1.0 - HS)
                     # resting decay toward zero for stem-like cells
                 x1, x2 = div_mod.partition(self.x[idx], cfg.division,
@@ -214,7 +228,7 @@ class Simulator:
             if not legacy:
                 HSr = rates_mod.hill(
                     rates_mod.stemness(self.grn, self.x),
-                    cfg.rates.K_switch, cfg.rates.p_switch)
+                    self.K_switch, cfg.rates.p_switch)
                 resting_now = (self.stage == REST) | \
                     (self.stage == NEWBORN)
                 self.div_count[resting_now] *= (1.0 - HSr[resting_now])

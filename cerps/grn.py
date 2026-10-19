@@ -1,7 +1,19 @@
 """N-gene regulation network dynamics (vectorised over cells).
 
-Generalises Eq. (1) of Huang et al. (2024) to G genes with additive
-regulation (Jolly et al. 2015; Xu et al. 2014).  For gene i:
+Generalises Eq. (1) of Huang et al. (2024) to G genes.  Two cross-term
+compositions are available via ``GRNConfig.regulation``:
+
+``product`` (default)  -- b_i * prod_j H-(x_j)^{B_ij}: multiplicative /
+    AND-gate combination.  For G = 2 with B_ij in {0,1} this reduces
+    exactly to Eq. (1) of the paper, and it coincides with the additive
+    form in that case.  Direct precedent: Duddu et al. 2026 (J. R. Soc.
+    Interface 23:20251065) Eq. 4.5; thermodynamic tradition: Buchler,
+    Gerland & Hwa 2003 (PNAS 100:5136).
+
+``additive`` -- sum_j B_ij * H-(x_j): the additive form of the paper's
+    text (the paper notes that its results are consistent with both).
+
+For gene i:
 
     dx_i/dt = a_i(u_i, eta_i) * (rho_i + (1-rho_i) * H+(x_i))
               + sum_{j != i} B_ij * H-(x_j)          (repression)
@@ -11,7 +23,8 @@ regulation (Jolly et al. 2015; Xu et al. 2014).  For gene i:
 
 with a_i = alpha_i * exp(lam_i * u_i + sigma_i * eta_i - sigma_i^2 / 2)
 (exponential-form extrinsic noise, OU-coloured; see Eqs. (2)-(4) of the
-paper).  H+(x) = x^n/(s^n + x^n), H-(x) = s^n/(s^n + x^n).
+paper).  H+(x) = x^n/(s^n + x^n), H-(x) = s^n/(s^n + x^n), and every
+cross-term uses the *source* gene's own threshold s_j.
 
 For G = 2 with default matrices this reduces exactly to Eq. (1).
 """
@@ -47,16 +60,21 @@ class GRN:
         self.B, self.C = cfg.matrices()
         self.b_vec = cfg.b_vector()
         self.regulation = getattr(cfg, "regulation", "product")
-        # regulation thresholds: use s_self for self-term; for cross-terms
-        # default to the mean of the two genes' thresholds
+        # Regulation thresholds.  The cross-term acting ON gene i and driven
+        # BY gene j must use gene j's own half-effective concentration s_j,
+        # exactly as in Eq. (1) of Huang et al. (2024):
+        #     dx_1/dt = ... + b_1 * s_2^n / (s_2^n + x_2^n) - k_1 x_1
+        # (an earlier version averaged s_i and s_j, which broke the exact
+        # reduction whenever s_1 != s_2 -- e.g. the s_1 = 0.55 series of the
+        # paper's Fig. 10).
         self.S_rep = np.zeros((G, G))
         self.S_act = np.zeros((G, G))
         s = self.s_self
         for i in range(G):
             for j in range(G):
                 if i != j:
-                    self.S_rep[i, j] = 0.5 * (s[i] + s[j])
-                    self.S_act[i, j] = 0.5 * (s[i] + s[j])
+                    self.S_rep[i, j] = s[j]
+                    self.S_act[i, j] = s[j]
                 else:
                     # placeholder; diagonal edges carry weight 0 and are
                     # raised to the 0th power, but keep them finite so the

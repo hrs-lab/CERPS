@@ -41,8 +41,11 @@ def main(t_max=1500.0):
     ax = axs[0]
     ax.plot(t, rec["sc"], color="#2e9e2e", label="SC-like (all on)")
     ax.plot(t, rec["ta1"], color="#1f4fd8", label="X1 high")
-    ax.plot(t, rec["ta2"], color="#31c6f2", label="X2 high")
-    ax.plot(t, rec["other"], color="#d62728", label="X3 high")
+    # NOTE: for G > 2 the recorder keeps the paper's field names, but the
+    # label codes are 0 = all-high, j+1 = gene j high.  Hence "ta2" holds
+    # label 3 = X3-high and "other" holds label 2 = X2-high.
+    ax.plot(t, rec["other"], color="#31c6f2", label="X2 high")
+    ax.plot(t, rec["ta2"], color="#d62728", label="X3 high")
     ax.plot(t, rec["total"], "--", color="#555555", label="Total")
     ax.set_xlabel("t (h)")
     ax.set_ylabel("cell number")

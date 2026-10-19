@@ -139,14 +139,43 @@ def test_epi_kernels():
     check("epi: gaussian kernel sd",
           abs(d1[:, 0].std() - cfg.sigma_g) < 2e-3)
     check("epi: gaussian kernel support", (d1 >= 0).all() and (d1 <= 1).all())
+    # the mean must be preserved even when the truncation is heavy
+    # (sigma_g comparable to the distance of phi from the boundary);
+    # the sd is then necessarily smaller than sigma_g
+    cfg = EpiConfig(kernel="gaussian", sigma_g=0.30)
+    for vv in (0.02, 0.5, 0.98):
+        ph = epi.phi_map(vv, cfg)
+        d1, _ = epi.inherit(np.full((100000, 2), vv), cfg, rng)
+        check(f"epi: gaussian mean preserved (v={vv}, sg=0.3)",
+              abs(d1[:, 0].mean() - ph) < 5e-3,
+              f"{d1[:, 0].mean():.4f} vs {ph:.4f}")
+        check(f"epi: gaussian support (v={vv}, sg=0.3)",
+              (d1 >= 0).all() and (d1 <= 1).all())
 
-    cfg = EpiConfig(kernel="cpg")
+    # cpg kernel, moment-matched mode (default): mean AND variance agree
+    # with the beta kernel, so kernel comparisons are controlled
+    cfg = EpiConfig(kernel="cpg", cpg_mode="moment", cpg_sites=61)
+    d1, _ = epi.inherit(v, cfg, rng)
+    var = phi * (1 - phi) / (1 + cfg.m0)
+    check("epi: cpg(moment) mean == phi", abs(d1[:, 0].mean() - phi) < 2e-3,
+          f"{d1[:, 0].mean():.4f} vs {phi:.4f}")
+    check("epi: cpg(moment) variance == beta variance",
+          abs(d1[:, 0].var() - var) < 5e-4,
+          f"{d1[:, 0].var():.5f} vs {var:.5f}")
+    # cpg kernel, mechanistic mode: classical maintain/de-novo rule, whose
+    # mean map is affine and therefore has a DIFFERENT fixed point
+    cfg = EpiConfig(kernel="cpg", cpg_mode="mechanistic")
     d1, _ = epi.inherit(v, cfg, rng)
     mu = 0.5 * cfg.cpg_p_maintain + 0.5 * cfg.cpg_p_denovo
     sd = np.sqrt(mu * (1 - mu) / cfg.cpg_sites)
-    check("epi: cpg kernel mean", abs(d1[:, 0].mean() - mu) < 2e-3,
+    check("epi: cpg(mechanistic) mean == affine map",
+          abs(d1[:, 0].mean() - mu) < 2e-3,
           f"{d1[:, 0].mean():.4f} vs {mu:.4f}")
-    check("epi: cpg kernel sd (site noise)", abs(d1[:, 0].std() - sd) < 2e-3)
+    check("epi: cpg(mechanistic) sd (site noise)",
+          abs(d1[:, 0].std() - sd) < 2e-3)
+    check("epi: cpg modes give different mean maps (documented)",
+          abs(0.5 * cfg.cpg_p_maintain + 0.5 * cfg.cpg_p_denovo - phi) > 0.02,
+          "mechanistic mean map is affine, not the Hill map phi")
 
     cfg = EpiConfig(kernel="deterministic")
     d1, d2 = epi.inherit(v, cfg, rng)

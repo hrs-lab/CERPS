@@ -1,5 +1,11 @@
-numpy>=1.24
+# Core numerical stack.  numba is pinned because the RNG stream used inside
+# @njit kernels (np.random.* within numba_sim.run_simulation) is not
+# guaranteed to be bit-stable across numba releases: the stored Table 3
+# results were generated with numba 0.61/0.65 and differ from a rerun with
+# a different numba by ~0.09 pp (within the engine-to-engine Monte-Carlo
+# spread, but not bit-identical).  Pin to reproduce the archived data.
+numpy>=1.24,<3
 scipy>=1.10
 matplotlib>=3.7
-numba>=0.58
+numba==0.65.0
 pytest>=7.0

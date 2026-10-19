@@ -82,6 +82,13 @@ class EpiConfig:
     sigma_g: float = 0.045
     # cpg kernel: M explicit markable sites per gene
     cpg_sites: int = 60
+    # cpg_mode="moment"      per-site marking prob = phi(v) -> mean AND
+    #                        variance match the beta kernel (exactly, when
+    #                        cpg_sites == m0+1); use for comparisons
+    # cpg_mode="mechanistic" classical maintain/de-novo rule below; its
+    #                        mean map is affine and has a different fixed
+    #                        point -- mechanistic studies only
+    cpg_mode: str = "moment"
     cpg_p_maintain: float = 0.88    # marked site stays marked
     cpg_p_denovo: float = 0.02      # unmarked site becomes marked
     # deterministic kernel: u_daughter = phi(u_mother)
@@ -95,6 +102,9 @@ class DivisionConfig:
     partition: str = "exact"        # exact (paper) | binomial
     volume: float = 200.0           # molecules per AU at unit volume
     asymmetry: float = 0.5          # fraction of molecules to daughter 1
+    # partitioning-noise strength (Soltani et al. 2016 Eq. 5):
+    #   0 = deterministic, 1 = independent binomial, >1 = clustered
+    alpha: float = 1.0
 
 
 # ----------------------------------------------------------------------
@@ -113,7 +123,11 @@ class RatesConfig:
     x_threshold: float = 0.5        # legacy classification threshold
     # continuous-rate parameters (sharp limits reproduce legacy values)
     p_switch: float = 12.0          # Hill exponent of the sharp switch
-    K_switch: float = 0.5
+    K_switch: float = None          # Hill threshold of the stemness switch;
+                                    # None -> derived so that the continuous
+                                    # boundary coincides with the legacy
+                                    # x_threshold on the diagonal
+                                    # (see rates.resolve_K)
     # contact inhibition (spatial; also usable without space via Q feedback)
     theta_rho: float = 12.0         # half-effective neighbour count
     rho0: float = 6.0               # neighbours before inhibition starts
@@ -127,7 +141,12 @@ class SpaceConfig:
     enabled: bool = False
     cell_radius: float = 1.0        # [mu-m, arbitrary]
     domain_radius: float = 60.0     # spherical domain, reflecting boundary
-    relax: float = 0.15             # overlap relaxation factor per step
+    relax: float = 0.15             # overlap relaxation fraction per step
+                                    # at a nominal dt = 0.25 h (legacy)
+    relax_time: float = None        # mechanical relaxation time [h]; None
+                                    # -> derived from `relax` (see
+                                    # Space.relax).  Set explicitly for
+                                    # dt-independent mechanics.
     motility: float = 0.0           # Brownian motility [mu-m/h^0.5]
     contact_inhibition: bool = True
     inhibition_radius: float = 1.6  # in units of cell diameters
@@ -138,6 +157,8 @@ class SpaceConfig:
     secretion: float = 0.05         # per stem-like cell per h
     response: tuple = (0.0, 0.0)    # activation added to gene i per unit field
     grid_h: float = 4.0             # field grid spacing [mu-m]
+    normalize_source: bool = False  # divide injection by h^3 -> true
+                                    # concentration units
 
 
 # ----------------------------------------------------------------------
@@ -155,6 +176,9 @@ class CERPSConfig:
     n_init: int = 100
     max_time: float = 4000.0
     seed: int = 0
+    # discard transitions before this time [h] when filling self.transitions
+    # (paper Table-3 protocol: rec_tran_from = 2000 of a 4000 h run)
+    rec_tran_from: float = 0.0
     # outputs
     record_stride: int = 4          # record counts every stride steps
     record_states: bool = True      # keep (x, u, pos) snapshots

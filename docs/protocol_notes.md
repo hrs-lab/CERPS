@@ -6,6 +6,23 @@ text and the code differ, we follow the code; all differences are listed
 here.  These details matter: they are required to reproduce Table 3 to
 four significant digits.
 
+## Parameter m2: the paper's Table 2 contradicts its own simulations
+
+Table 2 lists `m2 = 1.0`.  Every place the paper actually reports a
+simulation uses `m2 = 0.8`:
+
+* Sec. 3.4.2: "we varied the parameter m2 over the interval **[0.8,0.9]**"
+* Sec. 3.5: "we fixed σ=0.05, **m2=0.8**"
+* Fig. 12 caption: "as the parameter m2 increases **from 0.8 to 0.9**"
+* released `main.cpp` sweep: `m2 = 0.8 + 0.025*(index-1)`
+
+Table 3 and all homeostasis figures are reproduced to 3–4 significant
+digits with m2 = 0.8, and the C++ cross-validation at m2 = 0.8 matches the
+Python engine to <0.14 pp, so 0.8 is the operative value.  (Lei 2019,
+arXiv:1903.11448 — the origin of this parametrisation — uses m2 = 1.0
+together with m3 = 1.65, m4 = 1.8; HSL2024 changed m3/m4 to 2.0/2.0 while
+apparently keeping m2 = 1.0 in the table.)
+
 ## Phenotype classification (Eq. 5 vs UpdateCellType)
 
 Paper: SC = both genes medium; TA1 = X1 high, X2 low; TA2 mirrored;

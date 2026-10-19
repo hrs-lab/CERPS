@@ -2,8 +2,8 @@
 and a paracrine signalling field.
 
 * Cells occupy spheres of radius ``cell_radius``; overlapping pairs are
-  relaxed apart by a fraction of the overlap per step (overdamped
-  soft-sphere mechanics; Van Liedekerke et al. 2018; Osborne et al. 2017).
+  relaxed apart with an exponentially decaying overlap (overdamped
+  soft-sphere mechanics; Van Liedekerke et al. 2018/2019/2020).
 * Divisions place the two daughters symmetrically about the mother along a
   random axis.
 * Local density (neighbour count within the inhibition radius) feeds back
@@ -11,7 +11,10 @@ and a paracrine signalling field.
   growth control; Zimmermann et al. 2016).
 * Optional paracrine field c(r, t): diffusion-decay on a regular grid
   with cell-based secretion (PhysiCell/PhysiBoSS-style; Letort et al.
-  2019); cells sense the local field, which adds to gene activation.
+  2019; Du, Nie & Holmes 2015); cells sense the local field, which adds
+  to gene activation.  The solver sub-cycles to respect the 3-D CFL limit
+  Fo = D*dt/h^2 <= 1/6 (never clamping the nominal diffusivity) and uses
+  reflecting boundaries consistent with the spherical cell domain.
 """
 import numpy as np
 
@@ -63,11 +66,29 @@ class Space:
         return np.maximum(counts - 1, 0)
 
     def relax(self, dt):
-        """One step of overdamped overlap relaxation + boundary."""
+        """One step of overdamped overlap relaxation + boundary.
+
+        The overlap decays exponentially with the mechanical relaxation
+        time ``relax_time`` [h]:  overlap <- overlap * exp(-dt/tau).
+        This makes the mechanics time-step consistent (the previous
+        version applied a fixed fraction per *step*, so changing dt
+        changed the mechanical rate without changing the dynamics it
+        converged to).
+
+        ``relax`` (fraction per step at a nominal dt of 0.25 h) is kept
+        for backward compatibility: if ``relax_time`` is None it is
+        converted as tau = -0.25 / ln(1 - relax), which reproduces the
+        old behaviour exactly at dt = 0.25 h.
+        """
         from scipy.spatial import cKDTree
         pos = self.pos
         if len(pos) < 2:
             return pos
+        tau = self.cfg.relax_time
+        if tau is None:
+            r = min(max(self.cfg.relax, 1e-6), 0.999999)
+            tau = -0.25 / np.log(1.0 - r)
+        frac = 1.0 - np.exp(-dt / max(tau, 1e-9))
         tree = cKDTree(pos)
         pairs = tree.query_pairs(2.0 * self.R, output_type="ndarray")
         if len(pairs):
@@ -77,14 +98,12 @@ class Space:
             overlap = 2.0 * self.R - dist
             m = overlap > 0
             if m.any():
-                push = (0.5 * self.cfg.relax * overlap[m])[:, None] * \
+                push = (0.5 * frac * overlap[m])[:, None] * \
                     d[m] / dist[m, None]
                 # symmetric displacement
                 np.add.at(pos, pairs[m, 0], -push)
                 np.add.at(pos, pairs[m, 1], push)
-        # motility
-        if self.cfg.motility > 0:
-            raise NotImplementedError("motility handled by simulator")
+        # motility is handled by the simulator
         # reflecting spherical boundary
         if self.R_dom is not None and self.R_dom > 0:
             r = np.linalg.norm(pos, axis=1)
@@ -109,28 +128,58 @@ class Space:
     # paracrine field
     # ------------------------------------------------------------------
     def field_step(self, secretion, dt):
-        """One explicit diffusion-decay step + cell-based sources.
+        """Advance the paracrine field by ``dt`` and sample it at the cells.
 
-        secretion: (n_cells,) source strengths (e.g. stemness-dependent).
-        Updates self.field (3D grid); returns (n_cells,) sampled field.
+        Solves  dc/dt = D lap(c) - k c + sources  on the regular grid with
+        an explicit FTCS scheme.  Two properties matter for quantitative
+        use:
+
+        1. **No silent CFL clamping.**  The 3-D von Neumann stability limit
+           is Fo = D*dt/h^2 <= 1/6.  Instead of clamping the diffusion
+           number (which silently replaces the nominal diffusivity by a
+           smaller effective one -- e.g. D=25, dt=0.25, h=4 would run at
+           D_eff = 10.67), the step is sub-cycled so that the *nominal* D
+           is honoured and the scheme stays stable.
+        2. **Reflecting (zero-flux) boundaries**, matching the reflecting
+           spherical cell domain.  The previous implementation used
+           ``np.roll``, i.e. periodic boundaries, which leaked ~8% of the
+           signal across the domain.
+
+        ``secretion`` : (n_cells,) source strengths (e.g. stemness-
+            dependent).  Units: the field carries secretion*time in
+            arbitrary units; ``SpaceConfig.response`` maps it onto gene
+            activation.  Set ``normalize_source=True`` to divide the
+            injection by h^3, giving a proper concentration field.
+
+        Returns (n_cells,) sampled field.
         """
         cfg = self.cfg
         if self.field is None:
             self.field = np.zeros(self._grid_shape)
         f = self.field
         h = cfg.grid_h
-        # sources (nearest grid point; grid is fine enough for demos)
+        D, k = cfg.diff_rate, cfg.decay_rate
+        # --- adaptive sub-stepping (no CFL clamp) -----------------------
+        cfl = D * dt / h ** 2
+        n_sub = max(1, int(np.ceil(cfl / (1.0 / 6.0) - 1e-12)))
+        sdt = dt / n_sub
+        c = D * sdt / h ** 2                      # <= 1/6 by construction
+        src_scale = (1.0 / h ** 3) if cfg.normalize_source else 1.0
         idx = self._to_grid(self.pos)
-        np.add.at(f, (idx[:, 0], idx[:, 1], idx[:, 2]), secretion * dt)
-        # decay
-        f *= (1.0 - cfg.decay_rate * dt)
-        # diffusion (FTCS, von Neumann stable for D dt/h^2 <= 1/6)
-        c = cfg.diff_rate * dt / h ** 2
-        c = min(c, 1.0 / 6.0)
-        lap = -6.0 * f
-        for ax in range(3):
-            lap += np.roll(f, 1, ax) + np.roll(f, -1, ax)
-        f += c * lap
+        for _ in range(n_sub):
+            # sources (nearest grid point)
+            np.add.at(f, (idx[:, 0], idx[:, 1], idx[:, 2]),
+                      secretion * sdt * src_scale)
+            # decay (explicit Euler, stable for k*sdt < 2)
+            f *= (1.0 - min(k * sdt, 1.0))
+            # diffusion, FTCS with reflecting boundaries (edge padding)
+            fp = np.pad(f, 1, mode="edge")
+            # explicit 6-neighbour sum from the padded array
+            lap = (-6.0 * f
+                   + fp[2:, 1:-1, 1:-1] + fp[:-2, 1:-1, 1:-1]
+                   + fp[1:-1, 2:, 1:-1] + fp[1:-1, :-2, 1:-1]
+                   + fp[1:-1, 1:-1, 2:] + fp[1:-1, 1:-1, :-2])
+            f += c * lap
         self.field = f
         return self.sample(self.pos)
 
