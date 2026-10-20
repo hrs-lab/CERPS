@@ -394,6 +394,64 @@ def test_record_decomposition_and_memory_stability():
               f"mem in [{m.min():.3g}, {m.max():.3g}]")
 
 
+def test_memory_driver_dispatch_and_run_reset():
+    """Regression guard for the P6 driver option and run() re-entry.
+
+    D3 (2026-10-20): ``MemoryConfig.driver`` was a *dead* option -- declared
+        in the config but never read, so any non-default value was silently
+        ignored.  It is now dispatched through
+        ``rates.memory_driver_signal``: ``"stemness"`` (the validated
+        baseline) and ``"u_mean"`` are implemented, anything else RAISES
+        rather than falling back silently.
+    D4: ``run()`` must reset the record lists as well as the P8 delay
+        buffer, so a continuation call cannot concatenate two time origins
+        into one series.
+    """
+    from cerps.batch import run_one, validate
+    from cerps.config import legacy_config, replace
+    from cerps.simulator import Simulator
+
+    base = replace(legacy_config(), max_time=200.0, record_states=False)
+
+    # --- implemented drivers are bounded and genuinely distinct ---------
+    mems = {}
+    for drv in ("stemness", "u_mean"):
+        cfg = replace(base, memory=replace(base.memory, enabled=True,
+                                           driver=drv, mem_couple=0.0))
+        r = run_one(cfg, seed=1, keep_sim=True, warn=False)
+        m = np.asarray(r["sim"].mem, float)
+        mems[drv] = m
+        check(f"memory driver '{drv}' stays in [0,1]",
+              np.isfinite(m).all() and m.min() >= 0.0 and m.max() <= 1.0,
+              f"mem in [{m.min():.3g}, {m.max():.3g}]")
+    check("memory drivers 'stemness' and 'u_mean' differ",
+          abs(mems["stemness"].mean() - mems["u_mean"].mean()) > 1e-3,
+          f"means {mems['stemness'].mean():.4f} vs {mems['u_mean'].mean():.4f}")
+
+    # --- an unimplemented driver fails loudly, and validate() says so ---
+    cfg = replace(base, memory=replace(base.memory, enabled=True,
+                                       driver="bogus"))
+    raised = False
+    try:
+        run_one(cfg, seed=1, warn=False)
+    except ValueError:
+        raised = True
+    check("unimplemented memory driver raises (no silent fallback)", raised)
+    check("validate() pre-warns about an unimplemented driver",
+          any("driver" in w for w in validate(cfg)))
+
+    # --- run() resets the record series --------------------------------
+    cfg = replace(base, rates=replace(base.rates, delay_steps=20))
+    sim = Simulator(cfg)
+    sim.run(t_max=100.0)
+    n_first = len(sim.records["t"])
+    sim.run(t_max=200.0)
+    n_second = len(sim.records["t"])
+    check("run() resets records (no concatenation across calls)",
+          n_first == 101 and n_second == 201,
+          f"len after run(100)={n_first}, after run(200)={n_second}")
+
+
 def main():
     print("== CERPS test suite ==")
     for fn in [test_grn_legacy_equivalence, test_grn_steady_states,
@@ -402,7 +460,8 @@ def main():
                test_rates_continuous_limit, test_simulator_legacy_vs_hsl2024,
                test_simulator_continuous, test_simulator_spatial,
                test_coupling_loop,
-               test_record_decomposition_and_memory_stability]:
+               test_record_decomposition_and_memory_stability,
+               test_memory_driver_dispatch_and_run_reset]:
         print(f"- {fn.__name__}")
         fn()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")

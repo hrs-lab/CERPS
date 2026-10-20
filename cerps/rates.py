@@ -78,6 +78,30 @@ def stemness(grn, x):
     return grn.activation_levels(x).prod(axis=1)
 
 
+def memory_driver_signal(driver, grn, x, u):
+    """Per-cell P6 memory driver signal in [0, 1].
+
+    ``driver`` selects what the leaky integrator tracks
+    (``MemoryConfig.driver``):
+
+    * ``"stemness"`` -- the stemness fraction S (validated baseline);
+    * ``"u_mean"``   -- the mean epigenetic state across genes.
+
+    Both are naturally bounded to [0, 1], which the integrator relies on.
+    An unknown name **raises** rather than silently falling back: a silently
+    ignored option invalidates a mechanism comparison without any error
+    (audit 2026-10-20, defect D3).  This is the single point where the P6
+    driver choice is injected, mirroring ``effective_niche_signal`` for P8.
+    """
+    if driver == "stemness":
+        return stemness(grn, x)
+    if driver == "u_mean":
+        return np.asarray(u, float).mean(axis=1)
+    raise ValueError(
+        f"memory.driver={driver!r} is not implemented; expected "
+        f"'stemness' or 'u_mean'")
+
+
 def classify_legacy(grn, x, prev, thr):
     """Discrete classification with the keep-previous rule (C++ code)."""
     t = prev.copy()

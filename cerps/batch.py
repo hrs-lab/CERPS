@@ -153,8 +153,9 @@ def validate(cfg: CERPSConfig):
     * ``rate_mode="continuous"`` with an explicit ``K_switch`` far from
       the value that aligns the continuous boundary with the legacy
       ``x_threshold``: the classification boundary moves.
-    * ``memory.enabled`` with ``driver != "stemness"``: the option is
-      ignored (the integrator always uses the stemness signal).
+    * ``memory.enabled`` with ``driver`` not in {``"stemness"``,
+      ``"u_mean"``}: the run will raise ``ValueError`` (implemented drivers
+      only) rather than silently tracking the default.
     * ``memory.enabled`` with ``tau < dt``: the EWMA gain is clamped to 1.
     * ``rec_tran_from == 0``: transition statistics include the transient
       and are not comparable with the paper's Table 3.
@@ -166,10 +167,10 @@ def validate(cfg: CERPSConfig):
     w = []
     d, e, r = cfg.division, cfg.epi, cfg.rates
     m = cfg.memory
-    # P6 memory traps: a dead option and an unresolvable timescale.
-    if m.enabled and m.driver != "stemness":
-        w.append(f"memory.driver='{m.driver}' is IGNORED: the leaky "
-                 f"integrator currently always uses the stemness signal")
+    # P6 memory traps: an unimplemented driver and an unresolvable timescale.
+    if m.enabled and m.driver not in ("stemness", "u_mean"):
+        w.append(f"memory.driver='{m.driver}' is not implemented; the run "
+                 f"will raise ValueError (implemented: 'stemness', 'u_mean')")
     if m.enabled and m.tau < cfg.dt:
         w.append(f"memory.tau={m.tau} < dt={cfg.dt}: the EWMA gain is "
                  f"clamped to 1 (a timescale below one step is "

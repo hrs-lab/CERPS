@@ -120,7 +120,10 @@ class MemoryConfig:
     # memory is copied to both daughters (state inheritance).
     enabled: bool = False
     tau: float = 10.0                # memory timescale [h] (EWMA window)
-    driver: str = "stemness"         # signal integrated: "stemness" -> S in [0,1]
+    driver: str = "stemness"         # signal integrated: "stemness" -> S in
+                                     # [0,1]; "u_mean" -> mean epigenetic
+                                     # state in [0,1].  Any other name raises
+                                     # ValueError (see rates.memory_driver_signal)
     mem_couple: float = 0.0          # coupling of mem into beta (0 = no effect)
 
 

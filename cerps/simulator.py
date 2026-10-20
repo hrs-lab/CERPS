@@ -117,7 +117,15 @@ class Simulator:
         # must be cleared here: without this, a second run() call on the same
         # Simulator (e.g. incremental t_max continuation) would index stale
         # history entries and silently apply the wrong delayed feedback.
+        # The same argument applies to the record lists, which are appended
+        # to: without a reset a continuation would silently concatenate two
+        # different time origins into one series.
         self._q_hist = []
+        self.records = dict(t=[], total=[], sc=[], ta1=[], ta2=[],
+                            other=[], mean_u=[], mean_S=[])
+        self.snapshots = []
+        self.transitions = []            # (parent_label, label) at entry
+        self.max_cells = 0
         snap_steps = {min(int(round(ts / dt)), n_steps - 1): ts
                       for ts in snapshot_times}
         legacy = cfg.rates.rate_mode == "legacy"
@@ -175,7 +183,8 @@ class Simulator:
             mem_arg = None
             mem_couple = 0.0
             if cfg.memory.enabled:
-                drv = rates_mod.stemness(self.grn, self.x)  # per-cell [0,1]
+                drv = rates_mod.memory_driver_signal(
+                    cfg.memory.driver, self.grn, self.x, self.u)
                 # Forward-Euler EWMA is stable only for gain = dt/tau <= 1.
                 # Clamp it: a memory timescale shorter than one step cannot be
                 # resolved anyway, and without the clamp tau < dt makes mem
