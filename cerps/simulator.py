@@ -90,11 +90,20 @@ class Simulator:
         r = self.records
         r["t"].append(t)
         r["total"].append(self.n)
-        r["sc"].append(int((self.label == 0).sum()))
-        r["ta1"].append(int((self.label == 1).sum()))
-        r["ta2"].append(int((self.label == 3).sum()))
-        r["other"].append(int((self.label == 2).sum()) if
-                          (self.label == 2).any() else 0)
+        sc_n = int((self.label == 0).sum())
+        ta1_n = int((self.label == 1).sum())
+        ta2_n = int((self.label == 3).sum())
+        r["sc"].append(sc_n)
+        r["ta1"].append(ta1_n)
+        r["ta2"].append(ta2_n)
+        # Record `other` as the RESIDUAL so that
+        # sc + ta1 + ta2 + other == n for ANY gene number G.
+        # classify_legacy() emits labels 0..G (0 = all-high, j+1 = gene j
+        # high), so for G >= 4 the states above label 3 have no dedicated
+        # column and must be lumped here.  For G == 2 the residual is 0
+        # (labels are 0/1/3) and for G == 3 it reduces to the old explicit
+        # count of label 2, so both are unchanged.
+        r["other"].append(int(self.n) - sc_n - ta1_n - ta2_n)
         r["mean_u"].append(self.u.mean(axis=0).tolist())
         r["mean_S"].append(float(S.mean()))
 
@@ -104,6 +113,11 @@ class Simulator:
         dt = cfg.dt
         t_max = cfg.max_time if t_max is None else t_max
         n_steps = int(round(t_max / dt))
+        # `step` is a LOCAL loop index starting at 0, so the P8 delay buffer
+        # must be cleared here: without this, a second run() call on the same
+        # Simulator (e.g. incremental t_max continuation) would index stale
+        # history entries and silently apply the wrong delayed feedback.
+        self._q_hist = []
         snap_steps = {min(int(round(ts / dt)), n_steps - 1): ts
                       for ts in snapshot_times}
         legacy = cfg.rates.rate_mode == "legacy"
@@ -162,7 +176,13 @@ class Simulator:
             mem_couple = 0.0
             if cfg.memory.enabled:
                 drv = rates_mod.stemness(self.grn, self.x)  # per-cell [0,1]
-                self.mem = self.mem + (dt / cfg.memory.tau) * (drv - self.mem)
+                # Forward-Euler EWMA is stable only for gain = dt/tau <= 1.
+                # Clamp it: a memory timescale shorter than one step cannot be
+                # resolved anyway, and without the clamp tau < dt makes mem
+                # diverge (measured: |mem| ~ 1e174 for tau=0.1, dt=0.25),
+                # which would corrupt the kinetics whenever mem_couple != 0.
+                gain = min(1.0, dt / max(cfg.memory.tau, 1e-12))
+                self.mem = self.mem + gain * (drv - self.mem)
                 mem_arg = self.mem
                 mem_couple = cfg.memory.mem_couple
 

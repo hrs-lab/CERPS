@@ -153,6 +153,9 @@ def validate(cfg: CERPSConfig):
     * ``rate_mode="continuous"`` with an explicit ``K_switch`` far from
       the value that aligns the continuous boundary with the legacy
       ``x_threshold``: the classification boundary moves.
+    * ``memory.enabled`` with ``driver != "stemness"``: the option is
+      ignored (the integrator always uses the stemness signal).
+    * ``memory.enabled`` with ``tau < dt``: the EWMA gain is clamped to 1.
     * ``rec_tran_from == 0``: transition statistics include the transient
       and are not comparable with the paper's Table 3.
     * ``space.paracrine`` with a large Fourier number: reported (the
@@ -162,6 +165,15 @@ def validate(cfg: CERPSConfig):
     from .grn import GRN
     w = []
     d, e, r = cfg.division, cfg.epi, cfg.rates
+    m = cfg.memory
+    # P6 memory traps: a dead option and an unresolvable timescale.
+    if m.enabled and m.driver != "stemness":
+        w.append(f"memory.driver='{m.driver}' is IGNORED: the leaky "
+                 f"integrator currently always uses the stemness signal")
+    if m.enabled and m.tau < cfg.dt:
+        w.append(f"memory.tau={m.tau} < dt={cfg.dt}: the EWMA gain is "
+                 f"clamped to 1 (a timescale below one step is "
+                 f"unresolvable)")
     if d.partition == "exact" and d.alpha != 1.0:
         w.append(f"division.alpha={d.alpha} is IGNORED because "
                  f"partition='exact' (use partition='binomial')")

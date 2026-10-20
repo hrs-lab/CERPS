@@ -350,6 +350,50 @@ def test_coupling_loop():
           b2[0] < b1[0], f"beta(Q=10)={b1[0]:.4f} beta(Q=400)={b2[0]:.4f}")
 
 
+def test_record_decomposition_and_memory_stability():
+    """Regression guard for two defects found 2026-10-20.
+
+    D1 (silent cell loss): ``classify_legacy`` emits labels 0..G (0 = all
+        high, j+1 = gene j high), but ``Simulator._record`` hard-coded the
+        columns {0, 1, 3} plus an explicit count of label 2.  For G >= 4
+        the states above label 3 therefore vanished from every ``ho_*``
+        aggregate -- measured 20.3% of cells at G=4 and 30.8% at G=5.
+        The invariant sc + ta1 + ta2 + other == total must hold for any G.
+    D2 (integrator blow-up): the P6 leaky integrator used gain dt/tau
+        unclamped, so tau < dt made ``mem`` diverge (measured |mem| ~ 1e174
+        at tau=0.1, dt=0.25).  ``mem`` must stay finite and inside [0, 1]
+        because its driver is a stemness fraction.
+    """
+    from cerps.batch import run_one
+    from cerps.config import legacy_config, replace
+
+    base = replace(legacy_config(), max_time=300.0, rec_tran_from=0.0,
+                   record_states=False)
+
+    # --- D1: decomposition invariant across gene numbers -------------
+    for G in (2, 3, 4, 5):
+        cfg = replace(base, grn=replace(base.grn, n_genes=G), seed=1)
+        r = run_one(cfg, seed=1, keep_sim=True, warn=False)
+        rec = r["sim"].records
+        tot = np.asarray(rec["total"], float)
+        parts = sum(np.asarray(rec[k], float)
+                    for k in ("sc", "ta1", "ta2", "other"))
+        gap = np.abs(tot - parts).max()
+        check(f"record decomposition G={G} (sc+ta1+ta2+other == total)",
+              gap < 0.5, f"max|total-parts|={gap:.1f} at n={tot[-1]:.0f}")
+
+    # --- D2: memory bounded and finite even below the step size ------
+    for tau in (10.0, 1.0, 0.25, 0.1, 0.01):
+        cfg = replace(base, max_time=200.0, seed=1,
+                      memory=replace(base.memory, enabled=True, tau=tau,
+                                     mem_couple=0.0))
+        r = run_one(cfg, seed=1, keep_sim=True, warn=False)
+        m = np.asarray(r["sim"].mem, float)
+        check(f"memory bounded tau={tau} (dt/tau={base.dt / tau:.2f})",
+              np.isfinite(m).all() and m.min() >= 0.0 and m.max() <= 1.0,
+              f"mem in [{m.min():.3g}, {m.max():.3g}]")
+
+
 def main():
     print("== CERPS test suite ==")
     for fn in [test_grn_legacy_equivalence, test_grn_steady_states,
@@ -357,7 +401,8 @@ def main():
                test_epi_continuous, test_division_partition,
                test_rates_continuous_limit, test_simulator_legacy_vs_hsl2024,
                test_simulator_continuous, test_simulator_spatial,
-               test_coupling_loop]:
+               test_coupling_loop,
+               test_record_decomposition_and_memory_stability]:
         print(f"- {fn.__name__}")
         fn()
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
