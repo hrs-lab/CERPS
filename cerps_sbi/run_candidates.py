@@ -21,7 +21,12 @@ from cerps_sbi import legacy_config, run_one, NG  # noqa
 VERIFY = dict(T=1500.0, n_init=200, seeds=(3, 11))
 PROD   = dict(T=4000.0, n_init=600, seeds=(3, 11, 21))
 
-CUR = VERIFY  # switch to PROD for the paper-scale run
+# Selected with the environment variable CERPS_SWEEP_MODE=prod|verify
+# (default: verify, i.e. the committed v1 result).  "prod" writes
+# results/candidate_sweep_v2.json and is the paper-scale run.
+MODE = os.environ.get("CERPS_SWEEP_MODE", "verify").strip().lower()
+CUR = PROD if MODE == "prod" else VERIFY
+OUT_NAME = "candidate_sweep_v2.json" if MODE == "prod" else "candidate_sweep_v1.json"
 
 SNAP_AT = 0.95  # fraction of T for the attractor snapshot
 
@@ -121,7 +126,7 @@ def main():
     out["elapsed_s"] = round(time.time() - t0, 1)
 
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "..", "results", "candidate_sweep_v1.json")
+                        "..", "results", OUT_NAME)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(out, f, indent=2)

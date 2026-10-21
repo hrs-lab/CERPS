@@ -205,6 +205,18 @@ bit-for-bit. This is a known limitation, not a code defect.**
   is reproducible once the numba version is pinned, and therefore that the
   stored 73.9885 / 73.9016 pair is a *numba-version* difference, not a code
   defect. (Raw output: `reproduction/results/data/base.npz`, not committed.)
+- **Independent re-run of the NumPy reference engine (2026-10-22).** The
+  30-run reference sweep (4000 h, `rec_tran_from=8000`, seeds 2024+r,
+  15,703,558 transitions, 1662 s) was re-run on this machine; raw output
+  `reproduction/results/tables/reference_rerun_2026-10-22.json`. Measured
+  reference transition matrix (SC row: 73.974 / 13.096 / 12.930) gives
+  `max|ref − paper| = 0.1406 pp`, and against the stored numba matrix
+  `max|ref − numba| = 0.1039 pp` — the latter reproduces the archived
+  `reference_vs_numba.json` value `0.10385053826536605` **to the last
+  digit**. Environment: numba 0.65.0, numpy 2.x, Windows/x86-64. This
+  supersedes the two L2′/cross-engine figures (0.1336 / 0.1143 pp) quoted in
+  `docs/audit_2026-10-21.md` before the re-run, which came from an
+  unrecorded intermediate run.
 - **Not bit-level reproducible.** With the same protocol and seed, the
   bit-level output changes with the **numba / llvmlite version**. The cause is
   that the RNG stream inside the `njit` path (and its coupling to array layout

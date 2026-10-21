@@ -60,6 +60,44 @@ below ~4.1 (with standardization weights `SC`, this is large → poor fit).
 Every marginal is pinned to a prior boundary (lower or upper). A 10-particle,
 edge-collapsed posterior is **not** a calibrated parameter set.
 
+### 2.1 Independent re-run (2026-10-22) — non-convergence confirmed, and the archived ε trace explained
+
+The shipped `abc.py` hard-coded `/home/z/...` paths and carried two further
+defects (a crash in the posterior-predictive stage when a simulation went
+extinct, and an ε-schedule branch that only fired on *resumed* runs). All three
+were fixed (paths via `$CERPS_ROOT`/`$CERPS_ABC_OUT`, NP/NPOPS/NSEED via
+environment; extinct-run guard; explicit first-vs-later population logic), and
+the ABC was re-run on this machine (Windows, numba 0.65.0) at reduced scale
+`NP=24 × NPOPS=3` (full archived scale would need ~6.7 CPU-h; raw output
+`CERPS_complete_package/results/abc_rerun_2026-10-22/`).
+
+**Re-run trace (data-adaptive ε):**
+
+| pop | ε (re-run) | n_acc (/24) | mean_d (accepted) |
+|-----|-----------|-------------|-------------------|
+| 0   | 6.789     | 18          | 6.446             |
+| 1   | 6.798     | 18          | 6.286             |
+| 2   | 6.591     | 18          | 5.848             |
+
+With the corrected schedule the threshold **stalls at ≈6.6–6.8**: the
+`min(60th percentile, 0.85·ε_prev)` rule is bound by the *data* (the 60th
+percentile of perturbed candidates), not by the geometric factor, and the
+posterior standard deviations barely shrink (e.g. `r_eff` sd 0.134 → 0.098 →
+0.072 over three populations). **Non-convergence is confirmed under the
+corrected schedule as well.**
+
+**Forensic note on the archived trace.** The archived ε values are an exact
+geometric sequence (6.7921 × 0.85 = 5.7733 × 0.85 = 4.9073 × 0.85 = 4.1712,
+to four decimals), i.e. the archived run took the forced 0.85 shrink at every
+population — the branch that the buggy `if EPS[0] is None` test only reached on
+runs *resumed* from a checkpoint. The final population's **0 acceptances** are
+therefore a direct consequence of a hard-coded decay outrunning the achievable
+distance, not an adaptive threshold. The archived `n_acc = 513` at population 2
+is likewise not reproducible from the current script at any single particle
+count and should be treated as an unverifiable archived artefact; the
+conclusion it was used to support (non-convergence) is nonetheless confirmed
+independently by the re-run above.
+
 ---
 
 ## 3. Relative model comparison (still informative)
@@ -151,17 +189,18 @@ Quantitative agreement with Paul 2015 is therefore **not** achieved.
    `u` resolution limit and the no-native-inversion constraint.
 3. **Candidate conclusions rest on the controlled sweep, not on an ABC posterior.**
    C1 (niche effect real), C2 (epigenetic gating → non-Markovian fingerprint),
-   C3 (bulk-null), C4 (mutual-repression negative finding) are validated **only**
-   by the *screening-scale* candidate sweep
-   `results/candidate_sweep_v1.json` (T=1500, N=200, seeds 3 and 11) — see
-   `candidate_register.md` §7. The ABC layer contributes only the *relative*
-   model-comparison support (niche + gating needed).
-   > **Status correction (2026-10-22 cross-check).** An earlier draft cited a
-   > production-scale `candidate_sweep_v2.json` (T=4000, N=600, seeds 3/11/21)
-   > here. **That file does not exist yet** — `candidate_register.md` §7
-   > correctly marks v2 as *in progress*. The v1 numbers are semi-quantitative
-   > screening anchors, not the publication threshold; no candidate may be
-   > quoted at production scale until v2 is actually run.
+   C3 (bulk-null), C4 (mutual-repression negative finding) are validated by the
+   candidate sweep — now at **production scale** `results/candidate_sweep_v2.json`
+   (T=4000, N=600, seeds 3/11/21, 39 runs, 2026-10-22), which supersedes the
+   screening-scale `candidate_sweep_v1.json` (T=1500, N=200, seeds 3/11); see
+   `candidate_register.md` §7.4 for the v1→v2 comparison. The ABC layer
+   contributes only the *relative* model-comparison support (niche + gating
+   needed).
+   > **Status history.** An earlier draft cited `candidate_sweep_v2.json` before
+   > it existed (flagged 2026-10-22 morning); the production run has since been
+   > **executed** (2026-10-22, elapsed 1636 s) and this section now cites it as
+   > real evidence. A hold-out 2-Wasserstein / PPC pass is still required before
+   > any candidate is upgraded beyond the sweep-verified level.
 4. **Status decision.** Candidates are upgraded **`[verified-v1]` → `[verified-prod]`**
    (robust multi-seed), **not** to `[derived]`: a `[derived]` tag would falsely
    imply a calibrated posterior, which does not exist.
@@ -170,9 +209,10 @@ Quantitative agreement with Paul 2015 is therefore **not** achieved.
 
 ## 7. Recommendations before submission
 
-- [ ] Re-run `analysis/src/abc.py` with corrected paths on this machine (the
-      shipped version hard-codes `/home/z/...`) to **confirm** the non-convergence;
-      report it as a deliberate identifiability result.
+- [x] Re-run `analysis/src/abc.py` with corrected paths on this machine to
+      **confirm** the non-convergence — **DONE (2026-10-22)**; see the
+      re-run note in §7.1 below. Report it as a deliberate identifiability
+      result.
 - [ ] Add a C1 sweep level near `h_ref_S ≈ 0.75` to center on the (degenerate)
       posterior and tighten the C1 narrative.
 - [ ] Do **not** quote absolute calibrated expression/cycling levels; report all
