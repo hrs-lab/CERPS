@@ -61,7 +61,7 @@ Let `v` be the mother's state; each daughter draws independently:
 | kernel | daughter state |
 |---|---|
 | `beta` | `u ~ Beta(m0*phi, m0*(1-phi))`, `phi(v) = m1 + m2 (m3 v)^m4/(1+(m3 v)^m4)` **[legacy]** |
-| `gaussian` | `u ~ N(phi(v), sigma_g^2)` truncated-folded to [0,1] |
+| `gaussian` | `u ~ N(phi(v), sigma_g^2)` truncated to [0,1] with the pre-truncation mean solved so that `E[u]=phi(v)` exactly (rejection sampling) |
 | `cpg` | per-site: marked site retained w.p. `p_maintain`; unmarked site gained w.p. `p_denovo`; `u = #marked / M` with `M` explicit sites |
 | `deterministic` | `u = phi(v)` |
 
@@ -104,7 +104,11 @@ incremented at mitosis, reset to 0 when a resting cell is classified SC).
 ### 4b. Continuous mode
 
 Let `S = PROD_i H+(x_i; s_ii)` be the **stemness** (all-genes-on measure)
-and `H_S(v) = v^p/(K^p + v^p)` a steep Hill switch (default p=12, K=0.5).
+and `H_S(v) = v^p/(K^p + v^p)` a steep Hill switch (default p=12).  With
+`K_switch=None` (default) `K = PROD_j H+(x_threshold)` so the continuous
+boundary coincides with the legacy box on the diagonal (K=0.25 for G=2,
+0.125 for G=3); the two rules still differ off the diagonal, and that
+mismatch grows with G (6.3% / 12.8% / 19.1% of x-space for G=2/3/4).
 
 ```
 beta  = beta0 * [1 - H_S(S) * (1 - theta0/(theta0 + Q_soft))] * CI(rho)
@@ -148,9 +152,13 @@ GRN/epigenetics<->population (Sec. 4; paracrine field Sec. 6).
 * Contact inhibition: local neighbour count `rho_local` within
   `1.6 * 2R` reduces `beta` (Sec. 4b).
 * Paracrine field `c(r,t)`: `dc/dt = D_c laplacian c - lambda c +
-  SUM_cells q(S_i) delta(r - r_i)` on a regular grid (FTCS, clamped to
-  the stability limit), `q(S) = q0 S` (stem-like cells secrete);
-  cells sense `c` which adds `p_i c` to gene-`i` production.
+  SUM_cells q(S_i) delta(r - r_i)` on a regular grid, solved by FTCS with
+  **CFL sub-stepping** (the nominal `D` is honoured; it is never silently
+  clamped) and **reflecting (zero-flux) boundaries**.  `q(S) = q0 S`
+  (stem-like cells secrete); cells sense `c` which adds `p_i c` to gene-`i`
+  production.  Sampling/deposition is nearest-node by default
+  (`field_interp="nearest"`, O(h)); `field_interp="linear"` switches to
+  trilinear sampling and conservative trilinear source deposition.
 
 ## 7. Event scheme
 

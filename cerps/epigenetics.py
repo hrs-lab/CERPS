@@ -77,10 +77,29 @@ def inherit(mother_u, cfg, rng):
         phi = phi_map(v, cfg)
         a = cfg.m0 * phi
         b = cfg.m0 * (1.0 - phi)
-        d1 = rng.beta(a, b)
-        d2 = rng.beta(a, b)
+        rho = float(getattr(cfg, "sister_corr", 0.0) or 0.0)
+        if rho <= 0.0:
+            d1 = rng.beta(a, b)
+            d2 = rng.beta(a, b)
+        else:
+            # Gaussian copula: latent correlation rho, exact Beta marginals
+            # (u ~ U(0,1) marginally, so Beta.ppf(u) ~ Beta(a,b)).
+            from scipy.stats import norm, beta as beta_dist
+            rho = min(max(rho, 0.0), 0.999)
+            sr, si = np.sqrt(rho), np.sqrt(1.0 - rho)
+            zs = rng.standard_normal(v.shape)
+            z1 = rng.standard_normal(v.shape)
+            z2 = rng.standard_normal(v.shape)
+            u1 = np.clip(norm.cdf(sr * zs + si * z1), 1e-12, 1 - 1e-12)
+            u2 = np.clip(norm.cdf(sr * zs + si * z2), 1e-12, 1 - 1e-12)
+            d1 = beta_dist.ppf(u1, a, b)
+            d2 = beta_dist.ppf(u2, a, b)
         return d1, d2
     if cfg.kernel == "gaussian":
+        if float(getattr(cfg, "sister_corr", 0.0) or 0.0) > 0.0:
+            raise ValueError(
+                "sister_corr is implemented for the beta and cpg kernels "
+                "only; the truncated-normal kernel keeps independent sisters")
         phi = phi_map(v, cfg)
         d1 = _trunc_normal(phi, cfg.sigma_g, rng)
         d2 = _trunc_normal(phi, cfg.sigma_g, rng)
@@ -94,12 +113,28 @@ def inherit(mother_u, cfg, rng):
             # per-site marking probability = phi(v): matches the beta
             # kernel in mean AND (with M = m0+1) in variance
             q = np.clip(phi_map(v, cfg), 0.0, 1.0)
-            for d in range(2):
-                u_new = np.empty_like(v)
-                for g in range(G):
-                    p = np.repeat(q[:, g:g + 1], M, axis=1)
-                    u_new[:, g] = (rng.random((n, M)) < p).mean(axis=1)
-                out.append(u_new)
+            rho = float(getattr(cfg, "sister_corr", 0.0) or 0.0)
+            if rho <= 0.0:
+                for d in range(2):
+                    u_new = np.empty_like(v)
+                    for g in range(G):
+                        p = np.repeat(q[:, g:g + 1], M, axis=1)
+                        u_new[:, g] = (rng.random((n, M)) < p).mean(axis=1)
+                    out.append(u_new)
+            else:
+                # shared latent per gene/site -> correlated sister uniforms
+                from scipy.stats import norm
+                rho = min(max(rho, 0.0), 0.999)
+                sr, si = np.sqrt(rho), np.sqrt(1.0 - rho)
+                shares = [rng.standard_normal((n, M)) for _ in range(G)]
+                for d in range(2):
+                    u_new = np.empty_like(v)
+                    for g in range(G):
+                        z = rng.standard_normal((n, M))
+                        u = norm.cdf(sr * shares[g] + si * z)
+                        p = np.repeat(q[:, g:g + 1], M, axis=1)
+                        u_new[:, g] = (u < p).mean(axis=1)
+                    out.append(u_new)
             return out[0], out[1]
         # mechanistic mode: semi-conservative maintenance / de-novo
         for d in range(2):

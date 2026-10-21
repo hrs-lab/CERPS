@@ -137,8 +137,24 @@ class GRN:
 
     # ------------------------------------------------------------------
     def ou_step(self, eta, dt, rng):
-        """Euler-Maruyama step of the OU noise (Eq. 3)."""
+        """One step of the OU noise (Eq. 3).
+
+        Default is Euler-Maruyama, exactly as the released C++ (stationary
+        variance 1/(1-dt/(2 zeta)), i.e. +14.3% at zeta=1, dt=0.25).  With
+        ``GRNConfig.ou_exact=True`` the exact one-step transition is used,
+        which has stationary variance exactly 1 for any dt and zeta:
+
+            eta' = eta e^{-dt/zeta} + sqrt(1 - e^{-2 dt/zeta}) N(0,1).
+
+        Unlike Euler-Maruyama this is stable for any dt (no dt > 2 zeta
+        blow-up) and removes the noise-amplitude bias at large sigma.
+        """
         G = self.G
         zeta = np.maximum(self.zeta, 1e-12)
+        if getattr(self.cfg, "ou_exact", False):
+            a = np.exp(-dt / zeta)
+            b = np.sqrt(1.0 - np.exp(-2.0 * dt / zeta))
+            return eta * a[None, :] + \
+                b[None, :] * rng.standard_normal(eta.shape)
         return eta - eta * (dt / zeta)[None, :] + \
             np.sqrt(2 * dt / zeta)[None, :] * rng.standard_normal(eta.shape)

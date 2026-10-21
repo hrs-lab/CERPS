@@ -28,11 +28,17 @@ class Space:
         self._grid = None
         self._grid_shape = None
         self._grid_origin = None
+        self._sphere_mask = None
         if cfg.paracrine:
             h = cfg.grid_h
             self._grid_shape = (int(2 * self.R_dom / h) + 1,) * 3
             self._grid_origin = -self.R_dom
             self.field = None
+            if getattr(cfg, "sphere_mask", False):
+                ax = self._grid_origin + h * np.arange(self._grid_shape[0])
+                X, Y, Z = np.meshgrid(ax, ax, ax, indexing="ij")
+                self._sphere_mask = (X ** 2 + Y ** 2 + Z ** 2) <= \
+                    self.R_dom ** 2
 
     # ------------------------------------------------------------------
     def init_positions(self, n, rng, cluster_radius=None):
@@ -165,11 +171,31 @@ class Space:
         sdt = dt / n_sub
         c = D * sdt / h ** 2                      # <= 1/6 by construction
         src_scale = (1.0 / h ** 3) if cfg.normalize_source else 1.0
+        linear = getattr(cfg, "field_interp", "nearest") == "linear"
         idx = self._to_grid(self.pos)
+        if linear:
+            # precompute the 8 trilinear corner indices/weights (position is
+            # fixed during the sub-steps)
+            ci0, ci1, cw0, cw1 = self._tri(self.pos)
         for _ in range(n_sub):
-            # sources (nearest grid point)
-            np.add.at(f, (idx[:, 0], idx[:, 1], idx[:, 2]),
-                      secretion * sdt * src_scale)
+            q = secretion * sdt * src_scale
+            if linear:
+                # conservative trilinear deposition: the 8 weights sum to 1,
+                # so total injected mass is unchanged, but the source is no
+                # longer a grid-aligned point (removes O(h) anisotropy)
+                for aa in (0, 1):
+                    ia = ci1[:, 0] if aa else ci0[:, 0]
+                    wa = cw1[:, 0] if aa else cw0[:, 0]
+                    for bb in (0, 1):
+                        ib = ci1[:, 1] if bb else ci0[:, 1]
+                        wb = cw1[:, 1] if bb else cw0[:, 1]
+                        for cc in (0, 1):
+                            ic = ci1[:, 2] if cc else ci0[:, 2]
+                            wc = cw1[:, 2] if cc else cw0[:, 2]
+                            np.add.at(f, (ia, ib, ic), q * wa * wb * wc)
+            else:
+                # sources (nearest grid point)
+                np.add.at(f, (idx[:, 0], idx[:, 1], idx[:, 2]), q)
             # decay (explicit Euler, stable for k*sdt < 2)
             f *= (1.0 - min(k * sdt, 1.0))
             # diffusion, FTCS with reflecting boundaries (edge padding)
@@ -180,6 +206,10 @@ class Space:
                    + fp[1:-1, 2:, 1:-1] + fp[1:-1, :-2, 1:-1]
                    + fp[1:-1, 1:-1, 2:] + fp[1:-1, 1:-1, :-2])
             f += c * lap
+            if self._sphere_mask is not None:
+                # Dirichlet boundary at r = R_dom: no field outside the cell
+                # domain (removes the cell-free cube-corner reservoir)
+                f[~self._sphere_mask] = 0.0
         self.field = f
         return self.sample(self.pos)
 
@@ -191,9 +221,47 @@ class Space:
         shape = np.array(self._grid_shape)
         return np.clip(idx, 0, shape - 1)
 
+    def _tri(self, pos):
+        """Trilinear cell indices and weights for ``pos`` (cube grid).
+
+        Returns ``(i0, i1, w0, w1)``, each of shape (m, 3): the lower and
+        upper grid index along every axis (clipped to the grid) and the
+        corresponding weights (``w0 + w1 == 1``).  At the upper boundary
+        ``i0 == i1`` and ``w1 == 0``, so the 8-point stencil degenerates
+        gracefully to the face node.
+        """
+        h = self.cfg.grid_h
+        n = np.array(self._grid_shape)
+        f = np.clip((pos - self._grid_origin) / h, 0.0, n[None, :] - 1.0)
+        i0 = np.floor(f).astype(int)
+        i1 = np.minimum(i0 + 1, n[None, :] - 1)
+        w1 = f - i0
+        return i0, i1, 1.0 - w1, w1
+
     def sample(self, pos):
-        """Nearest-neighbour sampling of the field at cell positions."""
+        """Sample the field at cell positions.
+
+        ``field_interp="nearest"`` (default) reproduces the validated
+        baseline (piecewise-constant, O(h) error).  ``"linear"`` uses
+        trilinear interpolation, which is exact for a field that is linear
+        over one grid cell and removes the grid anisotropy.
+        """
         if self.field is None:
             return np.zeros(len(pos))
+        if getattr(self.cfg, "field_interp", "nearest") == "linear":
+            i0, i1, w0, w1 = self._tri(pos)
+            f = self.field
+            out = np.zeros(len(pos))
+            for aa in (0, 1):
+                ia = i1[:, 0] if aa else i0[:, 0]
+                wa = w1[:, 0] if aa else w0[:, 0]
+                for bb in (0, 1):
+                    ib = i1[:, 1] if bb else i0[:, 1]
+                    wb = w1[:, 1] if bb else w0[:, 1]
+                    for cc in (0, 1):
+                        ic = i1[:, 2] if cc else i0[:, 2]
+                        wc = w1[:, 2] if cc else w0[:, 2]
+                        out += wa * wb * wc * f[ia, ib, ic]
+            return out
         idx = self._to_grid(pos)
         return self.field[idx[:, 0], idx[:, 1], idx[:, 2]]

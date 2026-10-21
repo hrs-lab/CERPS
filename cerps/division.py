@@ -10,7 +10,7 @@ binomial  - molecule-level stochastic partitioning.  The strength of the
             Soltani et al. 2016 (PLoS Comput Biol 12:e1004972, Eq. 5):
 
                 E[x_daughter | x]      = x
-                Var[x_daughter | x]    = alpha * x * (1-f) / f
+                Var[x_daughter | x]    = alpha * x * (1-f) / (f * V)
 
             with f the volume fraction of daughter 1 (``asymmetry``).
             The three canonical regimes are

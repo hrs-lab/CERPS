@@ -37,6 +37,14 @@ class GRNConfig:
     sigma: tuple = (0.05, 0.05)      # extrinsic noise intensities
     zeta: tuple = (1.0, 1.0)         # OU relaxation times [h]
     a_tf: tuple = (0.0, 0.0)         # externally induced TF (per gene)
+    # OU integration scheme.  False (default) = Euler-Maruyama, exactly as the
+    # released C++ (keeps the validated Table-3 baseline).  True = exact
+    # one-step transition eta <- eta e^{-dt/zeta} + sqrt(1-e^{-2 dt/zeta}) N,
+    # whose stationary variance is exactly 1 for any dt.  Euler-Maruyama
+    # inflates the stationary variance by 1/(1-dt/(2 zeta)) (e.g. +14.3% at
+    # zeta=1, dt=0.25), which biases the extrinsic-noise amplitude whenever
+    # sigma is not small.
+    ou_exact: bool = False
 
     def matrices(self):
         G = self.n_genes
@@ -91,6 +99,13 @@ class EpiConfig:
     cpg_mode: str = "moment"
     cpg_p_maintain: float = 0.88    # marked site stays marked
     cpg_p_denovo: float = 0.02      # unmarked site becomes marked
+    # Sister-daughter correlation of the inherited mark (0 = independent,
+    # the paper's kernel).  Implemented for the beta kernel (Gaussian copula:
+    # exact Beta marginals, latent correlation = sister_corr) and for
+    # cpg(moment) (correlated per-site uniforms).  Not supported for gaussian
+    # (a clear error is raised rather than silently returning independent
+    # sisters).  Relevant to lineage-autocorrelation observables (M8).
+    sister_corr: float = 0.0
     # deterministic kernel: u_daughter = phi(u_mother)
 
 
@@ -182,6 +197,20 @@ class SpaceConfig:
     grid_h: float = 4.0             # field grid spacing [mu-m]
     normalize_source: bool = False  # divide injection by h^3 -> true
                                     # concentration units
+    # Field <-> cell interpolation.  "nearest" (default) reproduces the
+    # validated baseline (piecewise-constant sampling and a point source at
+    # the nearest node).  "linear" uses trilinear sampling and a conservative
+    # trilinear source deposition (the cell's secretion is spread over the 8
+    # surrounding nodes with weights summing to 1), which removes the O(h)
+    # grid anisotropy (mean relative sampling error ~27% at h=4 for a field
+    # varying on a 10 um scale).
+    field_interp: str = "nearest"   # nearest | linear
+    # If True the paracrine field is forced to zero outside the spherical cell
+    # domain (Dirichlet boundary at r = domain_radius), removing the
+    # cube-corner artefact of the Cartesian grid (a cell-free corner can
+    # otherwise accumulate field and leak it back).  Default False = the
+    # validated cube-with-reflecting-faces baseline.
+    sphere_mask: bool = False
 
 
 # ----------------------------------------------------------------------

@@ -185,12 +185,27 @@ fixed-epigenetic-state divisions (Fig. 3 protocol).
   `reproduction/results/data/` and are deterministic given the seeds
   recorded in `reproduction/scripts/common.py`.
 
-## 4. Table 3 行级（bit-level）复现性说明（审计问题 #16）
+## 6. Table 3 row-level (bit-level) reproducibility (audit issue #16)
 
-**结论：表 3 数据在统计意义下可复现，但不存在位级（bit-level）复现。此条已作为已知限制关闭，非代码缺陷。**
+**Conclusion: the Table 3 data are reproducible statistically, but not
+bit-for-bit. This is a known limitation, not a code defect.**
 
-- **统计可复现**：用仓库协议（30 runs, 4000 h, `seed=100`）重算表 3，与入库值最大差 **0.087 pp**（SC→SC 73.9016 vs 入库 73.9885）；总转移事件数约 1.57×10⁷。该差异与仓库自报的引擎间涨落（≤0.14 pp）同量级，属蒙特卡洛误差范围。
-- **非位级复现**：相同协议、相同种子下，逐位结果随 **numba / llvmlite 版本**变化。根因是 `njit` 编译路径内的 RNG 流（及其与数组布局/线程化的耦合）对编译器版本敏感；原始入库数据由（可能不同的）numba 版本生成，故无法逐位还原。
-- **缓解措施（已实施）**：`requirements.txt` 已将 `numba` 钉为 `==0.65.0` 并固定 `numpy`/`scipy`；生成任何入库数据时**必须记录所用的 numba/numpy/llvmlite 版本**（见 `docs/audit_2026-10-19.md` 顶部环境记录）。
-- **使用约定**：跨版本比较表 3 时，只比对到统计精度（≤0.15 pp），不要求逐位一致；发布入库数据须随附环境版本清单。
+- **Statistically reproducible.** Re-running Table 3 with the repository
+  protocol (30 runs, 4000 h, `seed=100`) differs from the stored values by at
+  most **0.087 pp** (SC→SC 73.9016 vs stored 73.9885), over about 1.57×10⁷
+  transition events. This is the same order as the engine-to-engine spread
+  reported by the repository (≤0.14 pp) and lies within Monte-Carlo error.
+- **Not bit-level reproducible.** With the same protocol and seed, the
+  bit-level output changes with the **numba / llvmlite version**. The cause is
+  that the RNG stream inside the `njit` path (and its coupling to array layout
+  and threading) is sensitive to the compiler version; the stored data were
+  generated with a (possibly different) numba version, so they cannot be
+  restored bit-for-bit.
+- **Mitigation (implemented).** `requirements.txt` pins `numba==0.65.0` and
+  fixes `numpy`/`scipy`; whenever data are generated, the **numba / numpy /
+  llvmlite versions must be recorded** (see the environment note at the top of
+  `docs/audit_2026-10-19.md`).
+- **Usage convention.** When comparing Table 3 across versions, compare only to
+  statistical precision (≤0.15 pp), not bit-for-bit; published data must be
+  accompanied by the environment version list.
 

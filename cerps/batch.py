@@ -48,7 +48,8 @@ from .config import CERPSConfig
 from .simulator import Simulator
 
 __all__ = ["run_one", "sweep", "aggregate", "homeostasis", "transitions",
-           "health_check", "report", "set_path", "get_path"]
+           "health_check", "report", "set_path", "get_path", "validate",
+           "grn_stiffness"]
 
 
 # ----------------------------------------------------------------------
@@ -139,6 +140,28 @@ def transitions(sim):
 # ----------------------------------------------------------------------
 # configuration sanity: traps that silently invalidate a comparison
 # ----------------------------------------------------------------------
+def grn_stiffness(cfg: CERPSConfig):
+    """Estimate ``dt * lambda_max`` for the explicit-Euler GRN step.
+
+    The stiffest direction is the self-activation Hill term at its steepest
+    point ``x = s_self``, where ``dH+/dx = n/(4 s)``.  With the maximum
+    expression-rate prefactor ``a_max = alpha_max * exp(lam_max)`` (u <= 1)
+    the linearised eigenvalue is
+
+        lambda ~ a_max * (1 - rho_min) * n/(4 s_min) - k_min,
+
+    and forward Euler is accurate only while ``dt*lambda`` is small
+    (stable but oscillatory up to 2).  Returns ``dt*lambda`` (dimensionless).
+    """
+    from .grn import GRN
+    g = GRN(cfg.grn)
+    # per-gene worst case (handles asymmetric alpha/s/rho/k correctly):
+    #   lambda_i = a_i,max (1-rho_i) n/(4 s_i) - k_i,  a_i,max = alpha_i e^{lam_i}
+    a = g.alpha * np.exp(np.maximum(g.lam, 0.0))
+    lam_i = a * (1.0 - g.rho) * g.n / (4.0 * g.s_self) - g.k_deg
+    return float(cfg.dt * np.max(lam_i))
+
+
 def validate(cfg: CERPSConfig):
     """Return a list of warnings for configurations that are internally
     inconsistent in ways that silently invalidate a mechanism comparison.
@@ -190,6 +213,27 @@ def validate(cfg: CERPSConfig):
                      f"solver will take "
                      f"{int(np.ceil(cfl / (1/6) - 1e-12))} sub-steps per "
                      f"step (nominal diffusivity preserved)")
+        if getattr(cfg.space, "field_interp", "nearest") == "nearest":
+            w.append("space.field_interp='nearest': the paracrine field is "
+                     "sampled/deposited at the nearest grid node (O(h) error, "
+                     "~27% mean at h=4). Use 'linear' for quantitative work")
+        if not getattr(cfg.space, "sphere_mask", False):
+            dl = np.sqrt(cfg.space.diff_rate /
+                         max(cfg.space.decay_rate, 1e-12))
+            if dl > 0.5 * cfg.space.domain_radius:
+                w.append(f"paracrine decay length sqrt(D/k)={dl:.1f} > "
+                         f"0.5*domain_radius={0.5*cfg.space.domain_radius:.1f}: "
+                         f"the Cartesian grid extends beyond the spherical "
+                         f"cell domain; consider sphere_mask=True")
+    if cfg.epi.kernel == "gaussian" and \
+            float(getattr(cfg.epi, "sister_corr", 0.0) or 0.0) > 0.0:
+        w.append("sister_corr is not supported for the gaussian kernel "
+                 "(inherit() raises); use the beta or cpg kernel")
+    st = grn_stiffness(cfg)
+    if st > 1.0:
+        w.append(f"GRN explicit-Euler stiffness dt*lambda~{st:.2f} > 1 "
+                 f"(Hill slope at x=s_self): the default dt may oscillate; "
+                 f"reduce dt or verify with batch.health_check")
     return w
 
 
@@ -389,6 +433,7 @@ def health_check(cfg: CERPSConfig, t_short=None, seed=0):
         out["cfl"] = None
         out["n_sub"] = 0
         out["cfl_ok"] = True
+    out["grn_stiffness"] = grn_stiffness(cfg)
     # dt halving on a short run
     t_short = cfg.max_time if t_short is None else min(t_short, cfg.max_time)
     t_short = max(t_short, 4 * cfg.dt)
