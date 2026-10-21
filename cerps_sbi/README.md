@@ -15,9 +15,15 @@ run_cerps(seed, T, n_init, init, init_x, init_u, init_pos,
 ```
 
 There is **no** `CERPSConfig`, `GRNConfig`, `RatesConfig`, `MemoryConfig`,
-`EpiConfig`, `DivisionConfig`, `SpaceConfig`, or `delay_steps` in the code. The
-"config" is a plain `dict` of real CERPS parameter names (see `CERPS_DEFAULTS`,
-50 keys).
+`EpiConfig`, `DivisionConfig`, `SpaceConfig`, or `delay_steps` in **that
+kernel** (`cerps_model/src/cerps.py`). The "config" there is a plain `dict` of
+real CERPS parameter names (see `CERPS_DEFAULTS`, 50 keys).
+
+> **Scope note (2026-10-22).** This refers to the `CERPS_complete_package`
+> kernel only. The `cerps/` package in **this** repository *is* dataclass-based
+> and does define `CERPSConfig`, `GRNConfig`, `EpiConfig`, `DivisionConfig`,
+> `SpaceConfig` and P8's `delay_steps` — they are two different codebases, and
+> the adapter below does not dispatch to this repository's `cerps/`.
 
 ## How to run
 

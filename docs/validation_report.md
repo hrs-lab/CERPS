@@ -152,7 +152,8 @@ fixed-epigenetic-state divisions (Fig. 3 protocol).
 
 ## 4. CERPS cross-validation
 
-`tests/test_cerps.py` — 37/37 tests pass, including:
+`tests/test_cerps.py` — 11/11 tests pass (full suite 42/42: `test_cerps.py`
+11 + `test_audit_fixes.py` 12 + `test_audit_2026_10_21.py` 19), including:
 
 * GRN: N-gene update == paper Eq. (1) for G=2 (bitwise-level numerical
   identity on the deterministic trajectory); 2-gene attractors match the
@@ -195,6 +196,15 @@ bit-for-bit. This is a known limitation, not a code defect.**
   most **0.087 pp** (SC→SC 73.9016 vs stored 73.9885), over about 1.57×10⁷
   transition events. This is the same order as the engine-to-engine spread
   reported by the repository (≤0.14 pp) and lies within Monte-Carlo error.
+- **Independent re-run (2026-10-22) reproducing the same number.** A second,
+  independent re-run of `job_base` on this machine returned SC→SC = **73.9016**
+  again — identical to the value above to four decimals — with
+  `max|prob − paper| = 0.0386 pp` over 15,679,044 transitions.
+  Environment: **numba 0.65.0** (as pinned in `requirements.txt`),
+  numpy 2.x, scipy 1.x, Windows/x86-64. This confirms that the re-run value
+  is reproducible once the numba version is pinned, and therefore that the
+  stored 73.9885 / 73.9016 pair is a *numba-version* difference, not a code
+  defect. (Raw output: `reproduction/results/data/base.npz`, not committed.)
 - **Not bit-level reproducible.** With the same protocol and seed, the
   bit-level output changes with the **numba / llvmlite version**. The cause is
   that the RNG stream inside the `njit` path (and its coupling to array layout

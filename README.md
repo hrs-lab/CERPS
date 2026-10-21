@@ -60,8 +60,10 @@ python examples/example_legacy_reproduction.py   # = the paper's model
 python examples/example_epigenetic_kernels.py    # 4 inheritance kernels
 python examples/example_multigene.py             # 3-gene GRN
 python examples/example_3d_spatial.py            # 3D spheroid + paracrine
-python tests/test_cerps.py                       # 46 tests (all pass)
-python tests/test_audit_fixes.py                 # 82 audit-fix tests
+python tests/test_cerps.py                       # 11 tests (all pass)
+python tests/test_audit_fixes.py                 # 12 audit-fix tests
+python tests/test_audit_2026_10_21.py            # 19 tests (2026-10-21 audit)
+# or: python -m pytest tests/                    # 42 passed
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -126,7 +128,8 @@ reproduction/
     analysis.py         statistics (mirrors DataAnalysis.m)
   scripts/              one runner per figure + batch orchestration
   results/              generated figures, tables, batch data
-tests/                  test suites (test_cerps.py, test_audit_fixes.py)
+tests/                  test suites (test_cerps.py 11, test_audit_fixes.py
+                        12, test_audit_2026_10_21.py 19; 42 total)
 examples/               runnable feature demonstrations
 docs/
   model_spec.md         full mathematical specification
@@ -134,9 +137,32 @@ docs/
   protocol_notes.md     paper-vs-code protocol differences
   validation_report.md  reproduction validation report
   audit_2026-10-19.md   log of the fixes applied after the code audit
+  audit_2026-10-21.md   deep audit: degenerate-limit exactness, new switches
+  validity_matrix.md    mechanism x regime x switches x bias lookup table
+  paper-workflow/       methodology set for turning CERPS into a paper
+cerps_sbi/              adapter over the CERPS_complete_package kernel
 ```
 
 ## Changelog
+
+### v1.1.1 (2026-10-21) -- deep audit: exactness in degenerate limits
+
+An audit of *where the model is exact in degenerate limits but may fail in
+general* (`docs/audit_2026-10-21.md`) quantified four biases and **added four
+switches, all OFF by default so the validated Table-3 baseline is untouched**.
+
+| switch | default | removes | quantified bias |
+|---|---|---|---|
+| `GRNConfig.ou_exact` | `False` | Euler-Maruyama OU variance inflation `1/(1-dt/2ζ)` | ζ=1,dt=0.25: +14.3%; ζ=0.25: **+100%** |
+| `SpaceConfig.field_interp` | `"nearest"` | O(h) nearest-grid sampling error | mean error 27.3% → **2.0%** (`"linear"`) |
+| `SpaceConfig.sphere_mask` | `False` | field leaking into cell-free cube corners | geometric; matters when √(D/k) ≳ 0.5R |
+| `EpiConfig.sister_corr` | `0.0` | zero sister-daughter correlation | corr(d1,d2) ≈ −0.006 → ρ-controlled |
+
+Also added: `batch.grn_stiffness` (per-gene `dt·λ_i`, default 0.953),
+`batch.validate` warnings, `docs/validity_matrix.md`, and
+`tests/test_audit_2026_10_21.py` (19 regression tests). Full suite:
+**42 passed** (11 + 12 + 19). See `docs/audit_2026-10-21.md` §8 for the
+parameter-range and symmetry/asymmetry scan.
 
 ### v1.1.0 (2026-10-19) -- audit fixes
 

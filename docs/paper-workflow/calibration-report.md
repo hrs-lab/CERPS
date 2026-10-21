@@ -151,10 +151,17 @@ Quantitative agreement with Paul 2015 is therefore **not** achieved.
    `u` resolution limit and the no-native-inversion constraint.
 3. **Candidate conclusions rest on the controlled sweep, not on an ABC posterior.**
    C1 (niche effect real), C2 (epigenetic gating → non-Markovian fingerprint),
-   C3 (bulk-null), C4 (mutual-repression negative finding) are validated by the
-   production-scale candidate sweep (`candidate_sweep_v2.json`, 3 seeds × T=4000 ×
-   N=600) — see `candidate_register.md` §7. The ABC layer contributes only the
-   *relative* model-comparison support (niche + gating needed).
+   C3 (bulk-null), C4 (mutual-repression negative finding) are validated **only**
+   by the *screening-scale* candidate sweep
+   `results/candidate_sweep_v1.json` (T=1500, N=200, seeds 3 and 11) — see
+   `candidate_register.md` §7. The ABC layer contributes only the *relative*
+   model-comparison support (niche + gating needed).
+   > **Status correction (2026-10-22 cross-check).** An earlier draft cited a
+   > production-scale `candidate_sweep_v2.json` (T=4000, N=600, seeds 3/11/21)
+   > here. **That file does not exist yet** — `candidate_register.md` §7
+   > correctly marks v2 as *in progress*. The v1 numbers are semi-quantitative
+   > screening anchors, not the publication threshold; no candidate may be
+   > quoted at production scale until v2 is actually run.
 4. **Status decision.** Candidates are upgraded **`[verified-v1]` → `[verified-prod]`**
    (robust multi-seed), **not** to `[derived]`: a `[derived]` tag would falsely
    imply a calibrated posterior, which does not exist.

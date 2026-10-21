@@ -85,6 +85,7 @@ print("dt*lambda =", batch.grn_stiffness(cfg))      # >1 -> halve dt
 | Independent sisters | M8 uses lineage correlation | signal systematically suppressed | `sister_corr>0` |
 | Stiffness over the limit | alpha↑, s↓, lam↑ | explicit-Euler oscillation | halve `dt` |
 | Cartesian grid | `√(D/k)≳0.5R` | field leaks into cell-free corners | `sphere_mask=True` |
+| Transient included in transitions | `rec_tran_from=0` (**the `CERPSConfig` default**) | transition matrix not comparable with paper Table 3 | `rec_tran_from=2000` (paper protocol); `batch.validate` warns on the default |
 
 ---
 
