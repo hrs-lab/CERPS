@@ -12,12 +12,19 @@ future refactor cannot silently change them:
 
 Pure NumPy, no simulation, so this file is fast enough for every CI run.
 """
+import os
+import sys
+
 import numpy as np
 import pytest
 
-from cerps.config import GRNConfig, CERPSConfig
-from cerps.grn import GRN
-from cerps import batch
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, ROOT)
+
+from cerps.config import GRNConfig, CERPSConfig  # noqa: E402
+from cerps.grn import GRN  # noqa: E402
+from cerps import batch  # noqa: E402
 
 DT = 0.25
 ZETA_GRID = [0.25, 0.5, 1.0, 2.0, 4.0]
@@ -75,3 +82,8 @@ def test_grn_stiffness_crosses_unity_only_where_audit_says():
         ("k11.1", dict(k_deg=(1.1, 1.0))), ("rho10.11", dict(rho=(0.11, 0.1))),
     ] if _stiff(**kw) > 1.0}
     assert set(over) == {"alpha1.0", "s0.3", "alpha10.44"}, over
+
+
+if __name__ == "__main__":
+    import pytest
+    raise SystemExit(pytest.main([__file__, "-q"]))

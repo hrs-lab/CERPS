@@ -65,7 +65,9 @@ python tests/test_audit_fixes.py                 # 93 audit-fix tests
 python tests/test_audit_2026_10_21.py            # 19 tests (2026-10-21 audit)
 python tests/test_audit_ranges.py                # 18 range-scan tests (audit §8)
 python tests/test_m2_generalisation.py           # V1-V7 proposal-layer checks
-# or: python -m pytest tests/                    # 191 passed (+ M2 suite)
+# every file above runs standalone; python -m pytest tests/ collects the
+# 62 pytest-style cases (the two harness files expose 13/12 of their
+# 61/93 checks as test_* functions; full 191 via the standalone commands)
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -148,6 +150,35 @@ cerps_sbi/              adapter over the CERPS_complete_package kernel
 
 ## Changelog
 
+### v1.2.0 (2026-10-22) -- hardening fixes merged + M2 proposal layer
+
+Merged the 2026-10-20 hardening line (five measured defects, each with
+regression tests) and the M2 generalisation layer into `main`:
+
+| id | defect | measured before | after |
+|---|---|---|---|
+| D1 | `_record` hard-coded the label columns `{0,1,3}`, so cells with label >= 4 (G >= 4) were silently dropped from every `ho_*` summary | G=4 lost 20.3%, G=5 lost 30.8% | labels >= 4 counted in `other` |
+| D2 | P6 memory EWMA gain `dt/tau` unclamped: `tau < dt` diverged | `tau=0.1, dt=0.25`: max\|mem\| = 1.8e42 | clamped, max\|mem\| = 0.967 |
+| D3 | `MemoryConfig.driver` was a dead option (never read) | `u_mean` ran bit-identical to `stemness` | driver honoured |
+| D4 | `run()` re-entry concatenated records from two time origins | run(100)+run(200) = 1200 records | 800 records, series ends at t=200; P8 delay buffer also reset |
+| M2a | `GRNConfig.matrices()` accepted wrong-length flat `b_rep`/`c_act` | crashed later inside `GRN.step` (IndexError) | `ValueError` at `matrices()` |
+
+New **M2 generalisation layer** (`cerps/h_general.py`, `cerps/notation.py`):
+the RACIPE-style proposal form `F(x) = (G(x), H(x))` with epigenetic gates
+(`alpha`/`beta`/`k`), verified V1-V7 in `tests/test_m2_generalisation.py` --
+including bit-exact agreement with the native GRN wherever the reduction is
+defined.  `ProposalGRN.from_native` now *refuses* product mode with
+`b_base != 1` (which it cannot express) instead of silently dropping
+`b_vec`; additive mode stays exact for any `b_base`.
+
+Suite after the merge: every test file is standalone-runnable
+(`python tests/<file>.py`) -- `test_cerps.py` 61 + `test_audit_fixes.py`
+93 + `test_audit_2026_10_21.py` 19 + `test_audit_ranges.py` 18 = **191
+checks passed**, plus the M2 V1-V7 suite.  (`python -m pytest tests/`
+collects the 62 pytest-style cases; the two harness files expose only
+13/12 of their checks as `test_*` functions, so the standalone commands
+are the authoritative full run.)
+
 ### v1.1.1 (2026-10-21) -- deep audit: exactness in degenerate limits
 
 An audit of *where the model is exact in degenerate limits but may fail in
@@ -166,8 +197,10 @@ Also added: `batch.grn_stiffness` (per-gene `dt·λ_i`, default 0.953),
 `batch.validate` warnings, `docs/validity_matrix.md`,
 `tests/test_audit_2026_10_21.py` (19 regression tests) and
 `tests/test_audit_ranges.py` (18 range-scan tests pinning audit §8). Full
-suite: **60 passed** (11 + 12 + 19 + 18). See `docs/audit_2026-10-21.md` §8
-for the parameter-range and symmetry/asymmetry scan.
+suite at this release: **60 passed** (11 + 12 + 19 + 18; the hardening-line
+merge later expanded the first two files to 61 + 93 -- see v1.2.0). See
+`docs/audit_2026-10-21.md` §8 for the parameter-range and
+symmetry/asymmetry scan.
 
 ### v1.1.0 (2026-10-19) -- audit fixes
 

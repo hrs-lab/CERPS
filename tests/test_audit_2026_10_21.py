@@ -9,13 +9,20 @@ validated Table-3 baseline is untouched:
 
 and asserts the defaults still reproduce the legacy paths.
 """
+import os
+import sys
+
 import numpy as np
 import pytest
 
-from cerps.config import GRNConfig, SpaceConfig, CERPSConfig, EpiConfig
-from cerps.grn import GRN
-from cerps.spatial import Space
-from cerps import batch
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
+sys.path.insert(0, ROOT)
+
+from cerps.config import GRNConfig, SpaceConfig, CERPSConfig, EpiConfig  # noqa: E402
+from cerps.grn import GRN  # noqa: E402
+from cerps.spatial import Space  # noqa: E402
+from cerps import batch  # noqa: E402
 from cerps import division as div_mod
 from cerps import epigenetics as epi
 
@@ -227,3 +234,8 @@ def test_sphere_mask_zeros_field_outside_sphere():
 
 def test_sphere_mask_default_false():
     assert SpaceConfig().sphere_mask is False
+
+
+if __name__ == "__main__":
+    import pytest
+    raise SystemExit(pytest.main([__file__, "-q"]))

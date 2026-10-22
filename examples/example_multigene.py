@@ -43,7 +43,10 @@ def main(t_max=1500.0):
         rates=RatesConfig(rate_mode="continuous"),
         n_init=100, max_time=t_max, seed=3)
     sim = Simulator(cfg)
-    sim.run()
+    # snapshot_times=[t_max] populates sim.snapshots with the FINAL state,
+    # which the right panel ("final expression states") reads.  Without it
+    # snapshots is empty and the right panel never renders.
+    sim.run(snapshot_times=[t_max])
     rec = sim.records
     t = np.array(rec["t"])
 
