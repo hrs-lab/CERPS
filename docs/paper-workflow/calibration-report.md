@@ -100,6 +100,57 @@ independently by the re-run above.
 
 ---
 
+### 2.2 Distance-floor decomposition (2026-10-22) — where the floor actually comes from
+
+The §7 checklist asked whether the *target construction* itself causes the
+non-convergence (the four master-gene means are nearly identical, sd 3×10⁻³, and
+the first entry of both bin profiles is exactly 0.0). Answer: **two real
+target-construction artefacts exist, but both are minor; the floor is dominated
+by a structural model–data mismatch.** Diagnostic: re-run the archived best
+particle (`abc_final.npz`, particle 0, seed 555) and decompose the 34-component
+distance (script: `CERPS_complete_package/analysis/src/diag_distance_floor.py`).
+
+**Measured: d = 5.777, d² = 33.38.** Top contributors:
+
+| component | model | target | share of d² |
+|---|---|---|---|
+| `lineage_ratio` (Klf1:Cebpa threshold-crossing ratio) | **6.53** | 1.50 | **24.8%** |
+| `cyc_bin7/8/9` (committed bins) | 0.23/0.23/0.20 | 0.87/0.77/0.68 | 22.9% |
+| `xK_bin7/8/9/10` | 0.78/0.91/0.69/0.79 | 2.41/2.38/2.32/2.12 | 20.3% |
+| mean/std block (8 components, weight 0.35) | ≈1.5/≈0.75 | ≈1.5/≈0.75 | 3.3% |
+| empty-bin-0 pair (`cyc_bin0`, `xK_bin0`) | 0.0 | 0.0 | 1.7% |
+
+1. **The mean/std block is a normalization tautology.** `data_summary.to_model`
+   maps each gene by a per-gene z-score affine map `clip((z+2)/4·3, 0, 3.5)`, so
+   every gene's mapped mean is 1.5 and std 0.75 *by construction*; the observed
+   spread (1.4927–1.4999, sd 3×10⁻³) reflects only clipping at 3.5 (0–2.9% of
+   cells per gene). These 8 components — the **largest weight block** — therefore
+   carry **no information about Paul 2015** beyond the clipping saturation. They
+   are not the cause of the floor (3.3% here) but must never be quoted as
+   "the model reproduces the data's expression levels".
+2. **The empty-bin sentinel is real but minor.** Bin 0 (`xG−xP < −2.5`) contains
+   **0 of 8399 cells**; the target stores 0.0 for its two profile slots, and the
+   kernel uses the same "0.0 when the bin is empty" convention, so the artefact
+   cancels only if the model also has no cells in bin 0. Measured contribution:
+   1.7% of d². It should be masked in any future fit, but it does not explain
+   the floor.
+3. **The floor is structural (adequacy, not target construction).** Two model
+   failures dominate: (i) the **Klf1:Cebpa lineage ratio** — the data give 33.8%
+   Klf1-high vs 22.6% Cebpa-high cells at the mapped threshold (1.2 in mapped
+   units = z = −0.4), ratio 1.50, while the model's best particle gives 6.53;
+   (ii) the **committed bins 7–10** — the model's GATA1-high cells carry far
+   less Klf1 (≈0.7–0.9 vs ≈2.1–2.4) and far less cycling (≈0.2 vs ≈0.7–0.9).
+   This is the quantitative content of the "cycling-by-bin structurally flat"
+   claim in §4.
+4. **Consequence for any future recalibration:** (a) drop or re-weight the
+   tautological mean/std block; (b) mask components whose target bin is empty;
+   (c) treat `lineage_ratio` as a diagnostic rather than a fitting target, or
+   re-derive its threshold in raw-expression units; (d) the committed-bin Klf1
+   and cycling levels are the *real* calibration target and are currently
+   unreachable — a model-side (not data-side) limitation.
+
+---
+
 ## 3. Relative model comparison (still informative)
 
 `results/abc/model_comparison.json` reports acceptance and mean distance at the
@@ -162,8 +213,15 @@ Quantitative agreement with Paul 2015 is therefore **not** achieved.
   (mean 0.752). My C1 sweep used levels {0.0, 0.40, 1.20}. The (weak) posterior
   prefers a **stronger** niche reference than my "default" 0.40, and my "strong"
   1.20 *exceeds* the posterior upper bound. → The sweep brackets the posterior
-  but is not centered on it. A level near 0.75 would better bracket the
-  (degenerate) posterior; flag for a follow-up sweep pass.
+  but is not centered on it. **Follow-up DONE (2026-10-22):** a
+  posterior-centered level `h_ref_S = 0.75` was added to the production sweep
+  (`results/candidate_sweep_v2.json`, 48 runs). It sits monotonically between
+  default and strong on terminal death (143.8k → 177.6k → 305.5k) and, like
+  every elevated level, suppresses mean GATA1 / elevates mean SPI1
+  (mG 0.32 / mP 2.38 at 0.75). Caveat: the "posterior" itself is the
+  10-particle edge-collapsed object of §2, so this level centers the sweep on a
+  **non-identified** posterior mean — treat it as a protocol choice, not as
+  evidence that 0.75 is the true value.
 - **C2 (`kappa_a` memory).** `kappa_a` is **not** in the ABC priors (the ABC
   only calibrates the 8 coupling params above). C2's verification is therefore
   independent of the ABC posterior and stands on the candidate sweep alone.
@@ -180,9 +238,14 @@ Quantitative agreement with Paul 2015 is therefore **not** achieved.
    predictive check is poor (coverage 15 %, effector genes ~70 % low, cycling
    ~53 % low, cycling-by-bin structurally flat). Together these say the failure
    is both **identification** (no usable posterior) and **adequacy** (even the
-   best particles mis-predict key observables). This is exactly the
-   "semi-quantitative / mechanism-screening, not molecular-resolution predictor"
-   boundary established in the audit report.
+   best particles mis-predict key observables). The 2026-10-22 distance-floor
+   decomposition (§2.2) sharpens this: **adequacy dominates** — the two largest
+   distance blocks are the Klf1:Cebpa lineage ratio (model 6.53 vs data 1.50)
+   and the committed-bin Klf1/cycling levels (model ~0.8 vs data ~2.3; model
+   ~0.2 vs data ~0.8); the two target-construction artefacts (tautological
+   mean/std block, empty-bin sentinels) contribute only 3.3% and 1.7%. This is
+   exactly the "semi-quantitative / mechanism-screening, not
+   molecular-resolution predictor" boundary established in the audit report.
 2. **This is a publishable limitation, not a method failure.** The identifiability
    gap (many parameter combinations reproduce the same coarse summary) should be
    stated explicitly in the paper's Limitations, alongside the single-scalar-per-gene
@@ -211,15 +274,21 @@ Quantitative agreement with Paul 2015 is therefore **not** achieved.
 
 - [x] Re-run `analysis/src/abc.py` with corrected paths on this machine to
       **confirm** the non-convergence — **DONE (2026-10-22)**; see the
-      re-run note in §7.1 below. Report it as a deliberate identifiability
-      result.
-- [ ] Add a C1 sweep level near `h_ref_S ≈ 0.75` to center on the (degenerate)
-      posterior and tighten the C1 narrative.
+      re-run note in §2.1. Report it as a deliberate identifiability result.
+- [x] Add a C1 sweep level near `h_ref_S ≈ 0.75` to center on the (degenerate)
+      posterior — **DONE (2026-10-22)**: level added to the production sweep
+      (48 runs); see §5 and `candidate_register.md` §7.4.
 - [ ] Do **not** quote absolute calibrated expression/cycling levels; report all
       candidate effects as *relative to the legacy anchor*.
 - [ ] State the ABC identifiability limitation in the paper's Limitations section.
-- [ ] Inspect `results/data/paul_summary_target.npz` construction before any
-      recalibration: the four master-gene target means are nearly identical
-      (sd 3×10⁻³) and the first entry of both bin profiles is exactly 0.0 —
-      confirm whether those components are informative, since they dominate the
-      distance and may themselves cause the non-convergence.
+- [x] Inspect `results/data/paul_summary_target.npz` construction before any
+      recalibration — **DONE (2026-10-22)**, see §2.2. Findings: the four
+      master-gene means are a **normalization tautology** (per-gene z-score
+      affine map → mean 1.5 / std 0.75 by construction; the 3×10⁻³ spread is
+      clipping only), so the highest-weight block carries no data information;
+      the exact-0.0 first bin entries are **empty-bin sentinels** (bin 0 holds
+      0/8399 cells) that cancel only if the model also leaves bin 0 empty.
+      Neither artefact dominates the distance floor (3.3% and 1.7%); the floor
+      is structural — the Klf1:Cebpa lineage ratio (24.8%) and the committed
+      bins 7–10 Klf1/cycling levels (~43%). Any recalibration must mask/drop
+      the two artefacts and treat the structural blocks as the real targets.

@@ -38,7 +38,7 @@
           "axis": "none",
           "level": "default",
           "override": {},
-          "runtime_s": 44.0
+          "runtime_s": 62.4
         },
         {
           "seed": 11,
@@ -65,7 +65,7 @@
           "axis": "none",
           "level": "default",
           "override": {},
-          "runtime_s": 45.8
+          "runtime_s": 68.6
         },
         {
           "seed": 21,
@@ -92,7 +92,7 @@
           "axis": "none",
           "level": "default",
           "override": {},
-          "runtime_s": 41.3
+          "runtime_s": 60.9
         }
       ]
     },
@@ -126,7 +126,7 @@
           "override": {
             "h_ref_S": 0.0
           },
-          "runtime_s": 42.7
+          "runtime_s": 61.5
         },
         {
           "seed": 11,
@@ -155,7 +155,7 @@
           "override": {
             "h_ref_S": 0.0
           },
-          "runtime_s": 42.2
+          "runtime_s": 61.1
         },
         {
           "seed": 21,
@@ -184,7 +184,7 @@
           "override": {
             "h_ref_S": 0.0
           },
-          "runtime_s": 40.5
+          "runtime_s": 47.7
         },
         {
           "seed": 3,
@@ -213,7 +213,7 @@
           "override": {
             "h_ref_S": 0.4
           },
-          "runtime_s": 42.7
+          "runtime_s": 48.2
         },
         {
           "seed": 11,
@@ -242,7 +242,7 @@
           "override": {
             "h_ref_S": 0.4
           },
-          "runtime_s": 42.3
+          "runtime_s": 47.1
         },
         {
           "seed": 21,
@@ -271,7 +271,94 @@
           "override": {
             "h_ref_S": 0.4
           },
-          "runtime_s": 40.2
+          "runtime_s": 43.5
+        },
+        {
+          "seed": 3,
+          "exit": 0.0,
+          "t": 4000.0,
+          "N_final": 2122.0,
+          "div": 373180,
+          "death": 371658,
+          "term_death": 178134,
+          "enter": 373873,
+          "cyc_frac": 0.1706376356347311,
+          "mG": 0.4416072641985124,
+          "mP": 2.256743881773328,
+          "mK": 0.13244441387814662,
+          "mC": 0.7603087874032829,
+          "sG": 0.8763910195669888,
+          "sP": 0.8953706074601309,
+          "uG": 0.37732493864707983,
+          "uP": 0.6637818978617934,
+          "uK": 0.34742443802635387,
+          "suG": 0.232381287524003,
+          "suP": 0.18655987290753462,
+          "candidate": "C1",
+          "axis": "h_ref_S (niche->epi reference)",
+          "level": "posterior",
+          "override": {
+            "h_ref_S": 0.75
+          },
+          "runtime_s": 47.2
+        },
+        {
+          "seed": 11,
+          "exit": 0.0,
+          "t": 4000.0,
+          "N_final": 1861.0,
+          "div": 364170,
+          "death": 362909,
+          "term_death": 181631,
+          "enter": 364813,
+          "cyc_frac": 0.17067286763907794,
+          "mG": 0.3705312343780713,
+          "mP": 2.392537719584744,
+          "mK": 0.10439933312073199,
+          "mC": 0.8060013752786762,
+          "sG": 0.7762082093354257,
+          "sP": 0.7177365065081363,
+          "uG": 0.36636553618935574,
+          "uP": 0.6963488588842816,
+          "uK": 0.3333080178866761,
+          "suG": 0.24135642021326245,
+          "suP": 0.16332018262832798,
+          "candidate": "C1",
+          "axis": "h_ref_S (niche->epi reference)",
+          "level": "posterior",
+          "override": {
+            "h_ref_S": 0.75
+          },
+          "runtime_s": 48.0
+        },
+        {
+          "seed": 21,
+          "exit": 0.0,
+          "t": 4000.0,
+          "N_final": 1903.0,
+          "div": 368739,
+          "death": 367436,
+          "term_death": 172912,
+          "enter": 369439,
+          "cyc_frac": 0.18354182576865485,
+          "mG": 0.15667377032318247,
+          "mP": 2.478531488223268,
+          "mK": 0.034803036984072104,
+          "mC": 0.8425767635953563,
+          "sG": 0.410272987668658,
+          "sP": 0.5206861193676378,
+          "uG": 0.35654560233628374,
+          "uP": 0.692842144601241,
+          "uK": 0.32230582807499186,
+          "suG": 0.18838529888865604,
+          "suP": 0.1216994198117593,
+          "candidate": "C1",
+          "axis": "h_ref_S (niche->epi reference)",
+          "level": "posterior",
+          "override": {
+            "h_ref_S": 0.75
+          },
+          "runtime_s": 47.0
         },
         {
           "seed": 3,
@@ -300,7 +387,7 @@
           "override": {
             "h_ref_S": 1.2
           },
-          "runtime_s": 41.3
+          "runtime_s": 47.4
         },
         {
           "seed": 11,
@@ -329,7 +416,7 @@
           "override": {
             "h_ref_S": 1.2
           },
-          "runtime_s": 41.2
+          "runtime_s": 45.0
         },
         {
           "seed": 21,
@@ -358,7 +445,7 @@
           "override": {
             "h_ref_S": 1.2
           },
-          "runtime_s": 40.5
+          "runtime_s": 44.8
         }
       ]
     },
@@ -392,7 +479,7 @@
           "override": {
             "kappa_a": 0.0
           },
-          "runtime_s": 46.0
+          "runtime_s": 63.8
         },
         {
           "seed": 11,
@@ -421,7 +508,7 @@
           "override": {
             "kappa_a": 0.0
           },
-          "runtime_s": 46.9
+          "runtime_s": 66.2
         },
         {
           "seed": 21,
@@ -450,7 +537,7 @@
           "override": {
             "kappa_a": 0.0
           },
-          "runtime_s": 44.2
+          "runtime_s": 49.1
         },
         {
           "seed": 3,
@@ -479,7 +566,7 @@
           "override": {
             "kappa_a": 0.03
           },
-          "runtime_s": 43.5
+          "runtime_s": 46.9
         },
         {
           "seed": 11,
@@ -508,7 +595,7 @@
           "override": {
             "kappa_a": 0.03
           },
-          "runtime_s": 42.1
+          "runtime_s": 46.9
         },
         {
           "seed": 21,
@@ -537,7 +624,7 @@
           "override": {
             "kappa_a": 0.03
           },
-          "runtime_s": 40.1
+          "runtime_s": 44.7
         },
         {
           "seed": 3,
@@ -566,7 +653,7 @@
           "override": {
             "kappa_a": 0.15
           },
-          "runtime_s": 28.7
+          "runtime_s": 40.9
         },
         {
           "seed": 11,
@@ -595,7 +682,7 @@
           "override": {
             "kappa_a": 0.15
           },
-          "runtime_s": 29.4
+          "runtime_s": 43.7
         },
         {
           "seed": 21,
@@ -624,7 +711,7 @@
           "override": {
             "kappa_a": 0.15
           },
-          "runtime_s": 27.4
+          "runtime_s": 29.7
         }
       ]
     },
@@ -658,7 +745,7 @@
           "override": {
             "s_part": 0.0
           },
-          "runtime_s": 42.4
+          "runtime_s": 47.0
         },
         {
           "seed": 11,
@@ -687,7 +774,7 @@
           "override": {
             "s_part": 0.0
           },
-          "runtime_s": 43.0
+          "runtime_s": 49.8
         },
         {
           "seed": 21,
@@ -716,7 +803,7 @@
           "override": {
             "s_part": 0.0
           },
-          "runtime_s": 40.6
+          "runtime_s": 49.1
         },
         {
           "seed": 3,
@@ -745,7 +832,7 @@
           "override": {
             "s_part": 0.06
           },
-          "runtime_s": 43.3
+          "runtime_s": 48.9
         },
         {
           "seed": 11,
@@ -774,7 +861,7 @@
           "override": {
             "s_part": 0.06
           },
-          "runtime_s": 41.7
+          "runtime_s": 47.9
         },
         {
           "seed": 21,
@@ -803,7 +890,7 @@
           "override": {
             "s_part": 0.06
           },
-          "runtime_s": 40.0
+          "runtime_s": 45.0
         },
         {
           "seed": 3,
@@ -832,7 +919,7 @@
           "override": {
             "s_part": 0.15
           },
-          "runtime_s": 42.3
+          "runtime_s": 49.3
         },
         {
           "seed": 11,
@@ -861,7 +948,7 @@
           "override": {
             "s_part": 0.15
           },
-          "runtime_s": 41.5
+          "runtime_s": 46.6
         },
         {
           "seed": 21,
@@ -890,7 +977,7 @@
           "override": {
             "s_part": 0.15
           },
-          "runtime_s": 41.5
+          "runtime_s": 46.7
         }
       ]
     },
@@ -935,7 +1022,7 @@
               1.2
             ]
           },
-          "runtime_s": 43.6
+          "runtime_s": 47.6
         },
         {
           "seed": 11,
@@ -975,7 +1062,7 @@
               1.2
             ]
           },
-          "runtime_s": 44.9
+          "runtime_s": 47.0
         },
         {
           "seed": 21,
@@ -1015,7 +1102,7 @@
               1.2
             ]
           },
-          "runtime_s": 44.6
+          "runtime_s": 47.4
         },
         {
           "seed": 3,
@@ -1055,7 +1142,7 @@
               1.2
             ]
           },
-          "runtime_s": 45.2
+          "runtime_s": 48.6
         },
         {
           "seed": 11,
@@ -1095,7 +1182,7 @@
               1.2
             ]
           },
-          "runtime_s": 44.8
+          "runtime_s": 48.7
         },
         {
           "seed": 21,
@@ -1135,7 +1222,7 @@
               1.2
             ]
           },
-          "runtime_s": 44.7
+          "runtime_s": 46.5
         },
         {
           "seed": 3,
@@ -1175,7 +1262,7 @@
               1.2
             ]
           },
-          "runtime_s": 47.1
+          "runtime_s": 74.3
         },
         {
           "seed": 11,
@@ -1215,7 +1302,7 @@
               1.2
             ]
           },
-          "runtime_s": 45.4
+          "runtime_s": 71.7
         },
         {
           "seed": 21,
@@ -1255,7 +1342,7 @@
               1.2
             ]
           },
-          "runtime_s": 46.1
+          "runtime_s": 71.6
         }
       ]
     }
@@ -1302,6 +1389,20 @@
         "mP": 1.026,
         "sG": 1.107,
         "sP": 1.1,
+        "frac_both_on": -1.0,
+        "frac_G_only": -1.0,
+        "frac_P_only": -1.0
+      },
+      {
+        "level": "posterior",
+        "N_final": 1962.0,
+        "div": 368696.0,
+        "term_death": 177559.0,
+        "cyc_frac": 0.175,
+        "mG": 0.323,
+        "mP": 2.376,
+        "sG": 0.688,
+        "sP": 0.711,
         "frac_both_on": -1.0,
         "frac_G_only": -1.0,
         "frac_P_only": -1.0
@@ -1454,5 +1555,5 @@
       }
     ]
   },
-  "elapsed_s": 1635.9
+  "elapsed_s": 2146.3
 }

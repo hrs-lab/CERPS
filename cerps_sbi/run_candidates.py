@@ -62,10 +62,14 @@ def main():
     out["candidates"]["baseline"] = {"axis": "none", "runs": base}
 
     print("== C1  P1 (niche) x [P8 delay: UNIMPLEMENTED] ==")
-    # P1 axis: niche epigenetic reference strength h_ref_S (default 0.40)
+    # P1 axis: niche epigenetic reference strength h_ref_S (default 0.40).
+    # The "posterior" level (0.75) was added 2026-10-22 to center the sweep on
+    # the (degenerate) ABC posterior mean h_ref_S = 0.752 -- see
+    # docs/paper-workflow/calibration-report.md §5/§7.
     c1 = run_axis("C1", "h_ref_S (niche->epi reference)",
                   [("off", {"h_ref_S": 0.0}),
                    ("default", {"h_ref_S": 0.40}),
+                   ("posterior", {"h_ref_S": 0.75}),
                    ("strong", {"h_ref_S": 1.20})])
     out["candidates"]["C1"] = {
         "axis": "P1 only (niche). P8 delay NOT in code -> unverifiable here",

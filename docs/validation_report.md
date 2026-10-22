@@ -152,8 +152,9 @@ fixed-epigenetic-state divisions (Fig. 3 protocol).
 
 ## 4. CERPS cross-validation
 
-`tests/test_cerps.py` — 11/11 tests pass (full suite 42/42: `test_cerps.py`
-11 + `test_audit_fixes.py` 12 + `test_audit_2026_10_21.py` 19), including:
+`tests/test_cerps.py` — 11/11 tests pass (full suite 60/60: `test_cerps.py`
+11 + `test_audit_fixes.py` 12 + `test_audit_2026_10_21.py` 19 +
+`test_audit_ranges.py` 18), including:
 
 * GRN: N-gene update == paper Eq. (1) for G=2 (bitwise-level numerical
   identity on the deterministic trajectory); 2-gene attractors match the

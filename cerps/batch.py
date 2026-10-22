@@ -408,6 +408,49 @@ def report(agg, keys=("ho_total", "ho_sc", "ho_ta1", "ho_ta2",
 # ----------------------------------------------------------------------
 # numerical health
 # ----------------------------------------------------------------------
+def dt_convergence_table(cfg: CERPSConfig, keys=("total", "sc", "ta1", "ta2"),
+                         n_seeds=8, t_short=None, base_seed=0):
+    """dt-halving convergence table for the coupled simulator (audit A2).
+
+    Runs the same configuration at ``dt``, ``dt/2`` and ``dt/4`` with
+    ``n_seeds`` seeds each and returns, per observable, the seed-mean at each
+    level, the successive differences ``e_k = |mean(dt/2^k) - mean(dt/2^(k+1))|``
+    and the observed order ``p = log2(e_0/e_1)`` (p ~ 1 for a first-order
+    Lie-splitting / Euler scheme).
+
+    Note the differences upper-bound the *total* discretisation error of the
+    coupled system (Lie splitting of the field-cell coupling + explicit-Euler
+    GRN + Euler-Maruyama OU + event rates); isolating the Lie-splitting term
+    alone would require a Strang-splitting variant of the simulator.
+    """
+    t_short = cfg.max_time if t_short is None else min(t_short, cfg.max_time)
+    t_short = max(t_short, 8 * cfg.dt)
+    means = {}
+    sds = {}
+    for level in range(3):
+        dt_l = cfg.dt / 2 ** level
+        vals = {k: [] for k in keys}
+        for s in range(n_seeds):
+            r = run_one(replace(cfg, max_time=t_short, dt=dt_l),
+                        seed=base_seed + 1000 * level + s, warn=False)
+            for k in keys:
+                vals[k].append(r[f"ho_{k}"])
+        means[level] = {k: float(np.mean(v)) for k, v in vals.items()}
+        sds[level] = {k: float(np.std(v, ddof=1) / np.sqrt(len(v)))
+                      for k, v in vals.items()}
+    out = {"t_short": t_short, "n_seeds": n_seeds, "levels": {}}
+    for k in keys:
+        m = [means[l][k] for l in range(3)]
+        e = [abs(m[i] - m[i + 1]) for i in range(2)]
+        order = float(np.log2(e[0] / e[1])) if e[1] > 0 else float("inf")
+        out["levels"][k] = {"mean_dt": m[0], "mean_dt2": m[1], "mean_dt4": m[2],
+                            "e0": e[0], "e1": e[1], "order": order,
+                            "rel_e0": e[0] / max(abs(m[1]), 1e-9),
+                            "se_dt": sds[0][k], "se_dt2": sds[1][k]}
+    out["max_rel_e0"] = max(v["rel_e0"] for v in out["levels"].values())
+    return out
+
+
 def health_check(cfg: CERPSConfig, t_short=None, seed=0):
     """Numerical-health report for a configuration.
 
@@ -434,7 +477,8 @@ def health_check(cfg: CERPSConfig, t_short=None, seed=0):
         out["n_sub"] = 0
         out["cfl_ok"] = True
     out["grn_stiffness"] = grn_stiffness(cfg)
-    # dt halving on a short run
+    # dt halving on a short run (see dt_convergence_table for the 3-level
+    # table with an observed-order estimate)
     t_short = cfg.max_time if t_short is None else min(t_short, cfg.max_time)
     t_short = max(t_short, 4 * cfg.dt)
     a = run_one(replace(cfg, max_time=t_short), seed=seed)

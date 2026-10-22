@@ -63,7 +63,8 @@ python examples/example_3d_spatial.py            # 3D spheroid + paracrine
 python tests/test_cerps.py                       # 11 tests (all pass)
 python tests/test_audit_fixes.py                 # 12 audit-fix tests
 python tests/test_audit_2026_10_21.py            # 19 tests (2026-10-21 audit)
-# or: python -m pytest tests/                    # 42 passed
+python tests/test_audit_ranges.py                 # 18 range-scan tests (audit §8)
+# or: python -m pytest tests/                    # 60 passed
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -159,10 +160,12 @@ switches, all OFF by default so the validated Table-3 baseline is untouched**.
 | `EpiConfig.sister_corr` | `0.0` | zero sister-daughter correlation | corr(d1,d2) ≈ −0.006 → ρ-controlled |
 
 Also added: `batch.grn_stiffness` (per-gene `dt·λ_i`, default 0.953),
-`batch.validate` warnings, `docs/validity_matrix.md`, and
-`tests/test_audit_2026_10_21.py` (19 regression tests). Full suite:
-**42 passed** (11 + 12 + 19). See `docs/audit_2026-10-21.md` §8 for the
-parameter-range and symmetry/asymmetry scan.
+`batch.dt_convergence_table` (dt/dt/2/dt/4 observed-order table, audit A2),
+`batch.validate` warnings, `docs/validity_matrix.md`,
+`tests/test_audit_2026_10_21.py` (19 regression tests) and
+`tests/test_audit_ranges.py` (18 range-scan tests pinning audit §8). Full
+suite: **60 passed** (11 + 12 + 19 + 18). See `docs/audit_2026-10-21.md` §8
+for the parameter-range and symmetry/asymmetry scan.
 
 ### v1.1.0 (2026-10-19) -- audit fixes
 
