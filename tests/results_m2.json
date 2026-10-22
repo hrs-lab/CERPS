@@ -1,0 +1,70 @@
+{
+  "V1_notation": {
+    "roundtrip_is_identity": true,
+    "frozen_gaps": [],
+    "dynamic_gaps": 2
+  },
+  "V2_exact_reduction": {
+    "max_abs_diff_one_step": 0.0,
+    "max_abs_diff_200_steps": 0.0,
+    "frozen_vs_dynamic": 0.42852049392556646,
+    "frozen_vs_native_const_u": 4.440892098500626e-16,
+    "simulator_cells_attached": 835,
+    "simulator_cells_native": 835
+  },
+  "V3_gates": {
+    "alpha_gate_max_err": 0.0,
+    "beta_gate_max_err": 0.0,
+    "k_gate_max_err": 0.0,
+    "one_step_diff": 0.8983696521266316,
+    "steady_state_TV": 463.3765232077127
+  },
+  "V4_h_switch": {
+    "zero_matches_continuous_step": true,
+    "linear_departure": 0.06249999875560597,
+    "general_collapse_at_zero_gain": 0.0,
+    "general_departure": 0.1245694754977599,
+    "TV_zero_vs_general": 18.95158511238242,
+    "TV_zero_vs_linear": 33.29765765115644
+  },
+  "V5_racipe": {
+    "states": [
+      "activation",
+      "repression",
+      "none"
+    ],
+    "hsl_toggle_signs": [
+      [
+        1,
+        -1
+      ],
+      [
+        -1,
+        1
+      ]
+    ],
+    "mixed_edge_sign": 0
+  },
+  "V6_end_to_end": {
+    "zero_regression_max_abs_diff": 0.0,
+    "h_switch_max_abs_diff": 0.07821443496161185,
+    "n_zero": 592,
+    "n_general": 634,
+    "n_full_proposal": 494,
+    "n_three_gene": 437,
+    "u_zero_mean": [
+      0.6855044897964389,
+      0.6717907749970704
+    ],
+    "u_general_mean": [
+      0.7583142709901735,
+      0.7500052099586823
+    ]
+  },
+  "V7_bbase_precondition": {
+    "v7a_raised": true,
+    "v7a_prevented_deviation": 0.2499999369979382,
+    "v7b_additive_max_abs_diff": 0.0,
+    "v7c_no_cross_max_abs_diff": 0.0
+  }
+}

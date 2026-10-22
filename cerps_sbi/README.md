@@ -45,9 +45,12 @@ the locked manuscript spatial config
 
 ## Honesty flags (do NOT silently ignore)
 
-1. **P8 (feedback delay) is NOT implemented.** There is no `delay_steps` in the
-   kernel. C1's delay sub-hypothesis is a *proposed code extension* — flagged,
-   never simulated.
+1. **P8 (feedback delay) is NOT available in this `cerps_model` kernel** — there is
+   no `delay_steps` here. Scope note (2026-10-20): the class-based `cerps/`
+   framework in the same project DOES implement P8 via `RatesConfig.delay_steps`
+   + `rates.effective_niche_signal()`, so C1's delay sub-hypothesis is **testable
+   there** even though the sweeps produced by this adapter cannot exercise it.
+   See `docs/paper-workflow/api-clarification.md`.
 2. **Memory (P6)** = the `epa` (epigenetic-age) accumulator, gated by `kappa_a`
    (accelerates death with divisional age) and `div_death_age`.
 3. **Partitioning (P3)** = `s_part` (expression partitioning noise at mitosis).

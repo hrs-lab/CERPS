@@ -60,11 +60,12 @@ python examples/example_legacy_reproduction.py   # = the paper's model
 python examples/example_epigenetic_kernels.py    # 4 inheritance kernels
 python examples/example_multigene.py             # 3-gene GRN
 python examples/example_3d_spatial.py            # 3D spheroid + paracrine
-python tests/test_cerps.py                       # 11 tests (all pass)
-python tests/test_audit_fixes.py                 # 12 audit-fix tests
+python tests/test_cerps.py                       # 61 tests (all pass)
+python tests/test_audit_fixes.py                 # 93 audit-fix tests
 python tests/test_audit_2026_10_21.py            # 19 tests (2026-10-21 audit)
-python tests/test_audit_ranges.py                 # 18 range-scan tests (audit §8)
-# or: python -m pytest tests/                    # 60 passed
+python tests/test_audit_ranges.py                # 18 range-scan tests (audit §8)
+python tests/test_m2_generalisation.py           # V1-V7 proposal-layer checks
+# or: python -m pytest tests/                    # 191 passed (+ M2 suite)
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -129,8 +130,9 @@ reproduction/
     analysis.py         statistics (mirrors DataAnalysis.m)
   scripts/              one runner per figure + batch orchestration
   results/              generated figures, tables, batch data
-tests/                  test suites (test_cerps.py 11, test_audit_fixes.py
-                        12, test_audit_2026_10_21.py 19; 42 total)
+tests/                  test suites (test_cerps.py 61, test_audit_fixes.py
+                        93, test_audit_2026_10_21.py 19,
+                        test_audit_ranges.py 18, test_m2_generalisation.py)
 examples/               runnable feature demonstrations
 docs/
   model_spec.md         full mathematical specification

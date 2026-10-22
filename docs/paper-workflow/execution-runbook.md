@@ -2,13 +2,7 @@
 
 > Companion: `research-proposal.md`. This file gives **directly executable** commands and scripts. All CERPS calls are checked against the **real** `CERPS` kernel in `cerps_model/src/cerps.py` (the only model file shipped in this repo).
 >
-> **CRITICAL API CORRECTION.** Earlier drafts referenced `cerps.config`, `cerps.batch`, `cerps.simulator`, `CERPSConfig`, `GRNConfig`, `RatesConfig.delay_steps`, `MemoryConfig`, `legacy_config()`, etc. **None of those exist in the shipped code.** The real, single entry point is:
-> ```python
-> from cerps import run_cerps, CERPS_DEFAULTS
-> run_cerps(seed, T, n_init, init, init_x, init_u, init_pos,
->           record_after, rec_every, snapshot_times, **params)
-> ```
-> This runbook and the `cerps_sbi` adapter (see §00b) wrap that one function. Everything below is runnable as written.
+> **API clarification (supersedes the retracted "API correction" notice).** This project contains **two** CERPS implementations. **(A)** `cerps/` in *this repository* — the class-based framework providing `CERPSConfig`, `GRNConfig`, `EpiConfig`, `DivisionConfig`, `MemoryConfig`, `RatesConfig` (including **`delay_steps`** = P8 feedback delay), `SpaceConfig`, `legacy_config()` and the `cerps.batch` harness; covered by `tests/` and reproducing paper Table 3. **(B)** the external companion package's numba kernel `cerps_model/src/cerps.py`, exposing only `run_cerps(**params)` + `CERPS_DEFAULTS` plus the ABC layer `analysis/src/abc.py`. An earlier claim that the names in (A) "do not exist" was **wrong** — it came from inspecting only (B) — and is hereby retracted. **Consequence: the P8 feedback delay IS available in (A) via `RatesConfig.delay_steps`.** Full account in **`api-clarification.md`**. The executed candidate sweeps reported below ran on (B) through `cerps_sbi/`.
 
 ---
 
@@ -57,7 +51,7 @@ $PY -c "import sys; sys.path.insert(0,'$CERPS_SRC'); from cerps import run_cerps
 - `run_one(override, seed, T, n_init, snapshot_times)` → one realization, returns flat metrics.
 
 **Honesty flags (do not silently ignore):**
-1. **P8 (feedback delay) is NOT implemented** in this CERPS version — there is no `delay_steps`. Any candidate relying on a delay axis (C1) can only be partially verified: the P1 (niche) axis is real; the P8 (delay) axis is a *proposed code extension* and is flagged, never simulated.
+1. **P8 (feedback delay) IS implemented** in the `cerps/` framework (`RatesConfig.delay_steps` + `rates.effective_niche_signal()`), but **is absent from the `cerps_model` kernel**. Any candidate relying on a delay axis (C1) can therefore be tested in `cerps/`; the sweeps in this runbook used the `cerps_model` kernel, so delay was not exercised there. See `api-clarification.md`.
 2. **Memory (P6)** = the `epa` (epigenetic-age) accumulator, gated by `kappa_a` (accelerates death with divisional age) and `div_death_age`.
 3. **Partitioning (P3)** = `s_part` (expression partitioning noise at mitosis).
 4. **Epigenetics (P5)** = `u` + `k_maint` + `w_u=(w0,wG,wP,wK,wC)` + `D_u`.

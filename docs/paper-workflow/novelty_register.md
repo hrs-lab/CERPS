@@ -53,28 +53,29 @@ No 🔴/🟠 without written argument → all domain priors are **controllable**
 - **Real hit.** **Dray et al. 2021**, *Cell Stem Cell* 28(8):1457–1472 (PMID 33823144): in **neural** stem cells, a dividing-NSC dispersion effect is exerted with a **9–12 day delay**; a stochastic lattice model reproduces self-propagating homeostasis.
 - **Verdict.** 🟡 adjacent, controllable.
 - **Difference argument.** Dray et al. is **neural**, not hematopoietic, and models a *physical dispersion* delay; we model a **transcriptional/niche-feedback delay** in HSC quiescence–activation oscillation. **[Honesty flag: `delay_steps` is NOT in this CERPS version — the P8 delay axis is a proposed code extension, not yet simulated; only the P1 niche axis is verifiable.]` Cite Dray 2021 as the conceptual precedent and explicitly delimit system & feedback modality. HSC-specific delayed-feedback instantiation remains open.
-- **Status.** `[to-be-verified: P1 real; P8 proposed]` until CERPS P1-axis sweep reproduces phase-lag / clone-size variance; P8 requires code addition.
+- **Status.** `[verified-prod §7: P1 axis verified at production scale — term_death +145% (124k→305k), N_final −26%; P8 delay IS already available in `cerps/` via `RatesConfig.delay_steps` — next step is to exercise it, not to add it]`.
 
 ### N2 — Non-Markovian epigenetic memory (P6)  [Candidate C2]
 - **Search.** `"epigenetic memory hematopoietic stem cell fate bias"`; `"non-Markovian history-dependent fate"`.
 - **Real hits.** 2024 *Trends Cell Biol.* review (epigenetic landscape differs between HSCs of distinct lineage bias, detectable *before* transcription); Nerlov 2023 *Nat Cell Biol.* (lymphoid enhancers as "latent memory"); RNA velocity (La Manno 2018) **explicitly assumes Markovian** fate.
 - **Verdict.** 🟡 adjacent, controllable.
 - **Difference argument.** The *concept* of epigenetic memory in HSC is established; our novelty is the **quantitative mechanism-screen** — using CERPS `kappa_a` (the epigenetic-age gate, i.e. P6) to test whether a non-Markovian memory term is *necessary and sufficient* to explain CARLIN within-clone correlation, *challenging the Markovian assumption* of RNA velocity. Position as "mechanism quantification of a known bias," not "discovery of epigenetic memory."
-- **Status.** `[verified-v1 §7: kappa_a↑ → cyc 0.09→0.15, N_final↓, seed-dependent lineage polarization (non-Markovian fingerprint)]`.
+- **Status.** `[verified-prod §7: kappa_a↑ → N_final −83%, cyc +78% — P6 has a large, robust effect]`.
+- **⚠ CORRECTION (production scale).** The v1 observation of *seed-dependent lineage polarization* is **refuted**: with three replicates the outcomes **converge** as `kappa_a` rises (cross-seed sd of mG 0.922 → 0.149, of mP 0.944 → 0.106). The defensible formulation of N2 is therefore: *the epigenetic-age (P6) term acts as a divisional-age selective filter that **suppresses** stochastic divergence between replicate histories* — the outcome still depends on accumulated divisional history (the non-Markovian ingredient), but it constrains rather than amplifies replicate divergence. **Do not** write "opposite fates from identical parameters".
 
 ### N3 — Division partitioning noise (P3)  [Candidate C3]
 - **Search.** `"partitioning noise cell division fate decision stem cell"`; `"stochastic partitioning hESC NANOG"`.
 - **Real hits.** Wu & Tzanakakis 2012 (*PLoS One* 7:e50715, PMID 23226362): stochastic partitioning ≈ 17% of hESC NANOG noise; Soltani 2016 (audit-cited): analytical binomial partitioning.
 - **Verdict.** 🟡 adjacent, controllable.
 - **Difference argument.** Partitioning noise theory is established in hESC; our angle is **coupling it to HSC lineage bias** via CERPS `s_part` (partitioning noise at mitosis, P3) and testing isolatability with a permutation necessity test. Cite Wu & Tzanakakis / Soltani as foundation, claim the *HSC-fate-coupling* as ours.
-- **Status.** `[verified-v1 §7: s_part 0→0.15 → negligible bulk change (honest null); needs clone-variance metric]`.
+- **Status.** `[verified-prod §7: s_part 0→0.15 shifts all bulk metrics by only ~1–4% (vs 145% for C1) — honest bulk-null confirmed at production scale; needs clone-variance metric]`.
 
 ### N4 — Mutual repression cannot give "all-on = stemness"  [Candidate C4, negative finding]
 - **Search.** `"mutual repression network stemness all-on state"`; `"mutual antagonism Oct4-Cdx2 Nanog-Gata6 pluripotency"`.
 - **Real hits.** Chang 2013 (*PLoS Comput Biol* 9:e1003165): 52-node hESC network whose bistability is driven by mutual antagonism (Oct4–Cdx2, Nanog–Gata6); PMC2566811: trophectoderm/endoderm fates from mutual antagonism. Duddu 2020: single-on dominant ~60%.
 - **Verdict.** 🟡 adjacent, controllable (quantitative refutation).
 - **Difference argument.** The qualitative "repression alone insufficient; activation core needed" (Boyer 2005) is known; our contribution is a **quantitative, multilocus measurement** (single-on ~93% / all-on ~0.5–1%, opposite to Duddu 2020) showing the "all-on = stemness" metaphor fails under full mutual repression. C4 is a *negative/control finding*, not a positive mechanism claim → low scooping risk.
-- **Status.** `[verified-v1 §7: GRN b-sweep gives frac_both_on = 0.0 at every repression level (both-on absent); supports the negative finding]`.
+- **Status.** `[verified-prod §7: GRN b-sweep term_death 14 ± 5 → 420251 ± 9185. CORRECTED: frac_both_on ≈ 0.017–0.019 (individual runs 0.000–0.050, seed 21 always 0) — it is NOT 0. Negative finding upheld at the ~2% level]`.
 
 ### N5 — CERPS as controlled causal-inference sandbox (framework)  [meta]
 - **Verdict.** ⚪ claimable (no direct competitor found in the searched window combining forward generative model + public-data SBI + mechanism ablation for HSC).
@@ -87,10 +88,10 @@ No 🔴/🟠 without written argument → all domain priors are **controllable**
 
 | Claim | Verdict | Blocks manuscript? | Required action before submission |
 |---|---|---|---|
-| N1 P8 delay | 🟡 | No | cite Dray 2021, delimit neural→HSC; **P1 niche axis verified-v1 §7, P8 delay proposed-unimplemented** |
-| N2 P6 memory | 🟡 | No | position as quantification of known bias; challenge RNA-velocity Markov assumption; **verified-v1 §7 (seed-dependent polarization)** |
-| N3 P3 partitioning | 🟡 | No | cite Wu&Tzanakakis 2012 / Soltani 2016; **verified-v1 §7 (bulk-null; needs clone-variance metric)** |
-| N4 mutual-repression refutation | 🟡 | No | both-on=0 at threshold 1.0 across GRN strengths (verified-v1 §7); ~93% single-on estimate to be re-confirmed with finer threshold |
+| N1 P8 delay | 🟡 | No | cite Dray 2021, delimit neural→HSC; **P1 niche axis verified-prod §7 (term_death +145%, N_final −26%); P8 delay still proposed-unimplemented** |
+| N2 P6 memory | 🟡 | No | reframe as *variance suppression by divisional-age selection*, not polarization; **verified-prod §7 (N_final −83%, cyc +78%; replicate sd collapses 0.92→0.15)** — v1 polarization claim refuted |
+| N3 P3 partitioning | 🟡 | No | cite Wu&Tzanakakis 2012 / Soltani 2016; **verified-prod §7 (bulk-null, ~1–4%; needs clone-variance metric)** |
+| N4 mutual-repression refutation | 🟡 | No | **verified-prod §7: both-on ≈ 1.7–1.9% (NOT 0) across GRN strengths; negative finding upheld at the ~2% level**; keep the separate `multigene_attractors.md` single-on ~93% figure with its finer-threshold caveat |
 | N5 framework | ⚪ | No | declare HSL2024 inheritance |
 | Red lines (Bokes/Jia/Wu–Grima–Jia) | 🟡 | No | add boundary paragraph in Discussion |
 

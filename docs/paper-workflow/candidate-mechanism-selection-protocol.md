@@ -10,7 +10,7 @@
 
 Candidate mechanisms can only be composed from the primitives below. **7 are implemented in the shipped kernel; P8 (delay) is NOT — it is a proposed code extension.** Any "new mechanism" that cannot map to an existing switch belongs to the **to-be-implemented components** list, not the candidate pool.
 
-> **API correction.** The "CERPS landing" column uses the **real** parameter names from `cerps_model/src/cerps.py` (consumed by `run_cerps(**params)`). Earlier class names (`CERPSConfig`, `GRNConfig`, `RatesConfig`, `MemoryConfig`, `EpiConfig`, `DivisionConfig`, `SpaceConfig`, `delay_steps`) do **not** exist in the code. `legacy_config()` (in the `cerps_sbi` adapter) returns the calibrated anchor = `CERPS_DEFAULTS` + locked spatial `BASE`.
+> **API clarification (supersedes the retracted "API correction" notice).** This project contains **two** CERPS implementations. **(A)** `cerps/` in *this repository* — the class-based framework providing `CERPSConfig`, `GRNConfig`, `EpiConfig`, `DivisionConfig`, `MemoryConfig`, `RatesConfig` (including **`delay_steps`** = P8 feedback delay), `SpaceConfig`, `legacy_config()` and the `cerps.batch` harness; covered by `tests/` and reproducing paper Table 3. **(B)** the external companion package's numba kernel `cerps_model/src/cerps.py`, exposing only `run_cerps(**params)` + `CERPS_DEFAULTS` plus the ABC layer `analysis/src/abc.py`. An earlier claim that the names in (A) "do not exist" was **wrong** — it came from inspecting only (B) — and is hereby retracted. **Consequence: the P8 feedback delay IS available in (A) via `RatesConfig.delay_steps`.** Full account in **`api-clarification.md`**. The executed candidate sweeps reported below ran on (B) through `cerps_sbi/`.
 
 | Primitive | Biological meaning | CERPS landing (real param) | Status |
 |---|---|---|---|
@@ -21,7 +21,7 @@ Candidate mechanisms can only be composed from the primitives below. **7 are imp
 | **P5** state inheritance | epigenetic | `u` + `k_maint` + `w_u` + `D_u` | implemented |
 | **P6** non-Markovian memory | history dependence | `epa` accumulator gated by `kappa_a` (+ `div_death_age`) | implemented (as age gate) |
 | **P7** spatial coupling | paracrine / contact inhibition | `grid` / `L` / `motil` / `crowding` + diffusing `S` | implemented |
-| **P8** feedback delay | delayed feedback | — (no `delay_steps` in code) | **NOT implemented — proposed extension** |
+| **P8** feedback delay | delayed feedback | `cerps/`: `RatesConfig.delay_steps` + `rates.effective_niche_signal()` (`simulator._q_hist`) | **Implemented in `cerps/`**; absent from the `cerps_model` kernel; not yet exercised in a sweep — see `api-clarification.md` |
 
 ---
 
