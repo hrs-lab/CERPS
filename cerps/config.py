@@ -39,15 +39,31 @@ class GRNConfig:
     a_tf: tuple = (0.0, 0.0)         # externally induced TF (per gene)
 
     def matrices(self):
+        """Return ``(B, C)`` as two ``(G, G)`` arrays.
+
+        ``b_rep`` / ``c_act`` may be given either flat (``G*G`` entries,
+        row-major) or nested; both are accepted, and a flat vector of the
+        wrong length is rejected instead of silently producing a 1-D
+        array that later fails deep inside ``GRN.step`` (M2 defect fix).
+        """
         G = self.n_genes
-        B = np.zeros((G, G)) if not self.b_rep else np.array(self.b_rep,
-                                                             float)
-        C = np.zeros((G, G)) if not self.c_act else np.array(self.c_act,
-                                                            float)
+        B = self._as_matrix(self.b_rep, G, "b_rep")
+        C = self._as_matrix(self.c_act, G, "c_act")
         if not self.b_rep:                       # full mutual repression
-            B[:] = 1.0
+            B = np.ones((G, G))
             np.fill_diagonal(B, 0.0)
         return B, C
+
+    @staticmethod
+    def _as_matrix(v, G, name):
+        if v is None or len(v) == 0:
+            return np.zeros((G, G))
+        arr = np.array(v, float)
+        if arr.size == G * G:
+            return arr.reshape(G, G)
+        raise ValueError(
+            f"{name} must hold {G * G} entries for n_genes={G}, "
+            f"got shape {arr.shape}")
 
     def b_vector(self):
         G = self.n_genes

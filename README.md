@@ -60,8 +60,9 @@ python examples/example_legacy_reproduction.py   # = the paper's model
 python examples/example_epigenetic_kernels.py    # 4 inheritance kernels
 python examples/example_multigene.py             # 3-gene GRN
 python examples/example_3d_spatial.py            # 3D spheroid + paracrine
-python tests/test_cerps.py                       # 46 tests (all pass)
-python tests/test_audit_fixes.py                 # 82 audit-fix tests
+python tests/test_cerps.py                       # 61 tests (all pass)
+python tests/test_audit_fixes.py                 # 93 audit-fix tests
+python tests/test_m2_generalisation.py           # V1-V7 proposal-layer checks
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -126,7 +127,8 @@ reproduction/
     analysis.py         statistics (mirrors DataAnalysis.m)
   scripts/              one runner per figure + batch orchestration
   results/              generated figures, tables, batch data
-tests/                  test suites (test_cerps.py, test_audit_fixes.py)
+tests/                  test suites (test_cerps.py, test_audit_fixes.py,
+                        test_m2_generalisation.py)
 examples/               runnable feature demonstrations
 docs/
   model_spec.md         full mathematical specification

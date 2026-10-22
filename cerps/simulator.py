@@ -59,6 +59,9 @@ class Simulator:
             self.grn, self.x, np.zeros(n, np.int8),
             cfg.rates.x_threshold)
         self.parent_label = np.zeros(n, np.int8)
+        # proposal-side epigenetic generalisation layer (M2); None => use
+        # the native HSL2024 continuous_step (default, zero-regression)
+        self.proposal_h = None
         # P6 non-Markovian memory: per-cell leaky integrator state (init 0)
         self.mem = np.zeros(n)
 
@@ -147,7 +150,9 @@ class Simulator:
             self.eta = self.grn.ou_step(self.eta, dt, self.rng)
             self.x = self.grn.step(self.x, self.u, self.eta, dt, paracrine)
             act = self.grn.activation_levels(self.x)
-            if cfg.epi.continuous:
+            if self.proposal_h is not None:
+                self.u = self.proposal_h.step(self.u, act, dt)
+            elif cfg.epi.continuous:
                 self.u = epi.continuous_step(self.u, act, cfg.epi, dt)
 
             # ---- phenotype labels -----------------------------------------
