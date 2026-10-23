@@ -71,7 +71,7 @@ python tests/test_m2_generalisation.py           # V1-V7 proposal-layer checks
 # plus the 7 M2 proposal-layer checks)
 #
 # `pip install -e ".[test,repro]"` then `python -m pytest tests/ -q`
-# is the CI-equivalent run (see .github/workflows/tests.yml).
+# is the CI-equivalent run (the workflow file is in docs/verification_2026-10-23.md §6).
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -153,10 +153,19 @@ docs/
   paper-workflow/       methodology set for turning CERPS into a paper
 cerps_sbi/              adapter over the external CERPS_complete_package
                         kernel (needs $CERPS_SRC / $CERPS_PKG; see its README)
-.github/workflows/      CI: pytest suite + standalone harness runs on main
+.github/workflows/      CI definition (see the note below -- must be committed
+                        once by the repository owner)
 CONTRIBUTING.md         branch policy (main only) and contribution rules
 pyproject.toml          packaging metadata (`pip install -e ".[test,repro]"`)
 ```
+
+> **Note on the CI file.**  `.github/workflows/tests.yml` exists in the
+> working tree of this change but is **not yet in the repository**: GitHub
+> refuses to let a personal access token write under `.github/`
+> (workflow-injection protection), so it has to be added once by the
+> repository owner (web UI *Add file*, or a normal `git push`).  The full
+> content is reproduced in `docs/verification_2026-10-23.md` §6, and the
+> equivalent local commands are in `CONTRIBUTING.md`.
 
 ## Changelog
 
@@ -175,9 +184,9 @@ the code's own claims held, but the *documentation and packaging* had drifted:
 | V3 | `docs/model_spec.md` described v1.0 only: no `a_tf`, no `cpg_mode="moment"` (the default), no `sister_corr`, no `alpha` in the partitioning variance, `kappa` with the *same* threshold `K` instead of the complementary `1-K`, `dr = relax*overlap` instead of the dt-consistent relaxation, `tests/test_cerps.py 37 tests` | spec brought to v1.2.0, with the corrected complementary threshold and the measured boundary mismatch (5.9/12.6/19.4% for G=2/3/4) |
 | V4 | `cerps_sbi/__init__.py` hard-coded `C:/Users/<name>/Downloads/CERPS_complete_package/...`, so the adapter imported on exactly one machine; `validate_against_cpp.py` hard-coded `/home/z/my-project/...` | env-var + relative resolution only, with an explicit `ImportError` explaining how to point at the kernel |
 | V5 | `tests/test_m2_generalisation.py` defines **no** `test_*` functions, so `pytest tests/` never ran the M2 layer and CI would have missed it entirely | 7 pytest wrappers added; `pytest tests/` now collects 69 cases |
-| V6 | no packaging metadata (`pip install -e .` impossible) and no CI | `pyproject.toml` + `.github/workflows/tests.yml` (pytest + all five standalone harnesses) |
+| V6 | no packaging metadata (`pip install -e .` impossible) and no CI | `pyproject.toml` added; the CI workflow is written out in `docs/verification_2026-10-23.md` §6 but cannot be committed by a PAT (§4b) |
 | V7 | `cerps.batch.__all__` omitted `load` and `dt_convergence_table`; `RatesConfig.delay_steps` carried a copy-pasted comment ("neighbours before inhibition starts") | both fixed |
-| V8 | the repository carried two branches (`main`, `add-paper-workflow`, 0 ahead / 6 behind, identical tree) | stale branch deleted; a ruleset now blocks creating any branch other than `main` (see `CONTRIBUTING.md`) |
+| V8 | the repository carried two branches (`main`, `add-paper-workflow`, 0 ahead / 6 behind, identical tree) | stale branch deleted, `main` is now the only branch; the enforcing ruleset needs admin rights and is documented as a copy-paste block in `CONTRIBUTING.md` |
 
 The verification also **confirmed** the numbers that had already drifted into
 legend: 27/27 independent recomputations of the analytic claims passed (OU

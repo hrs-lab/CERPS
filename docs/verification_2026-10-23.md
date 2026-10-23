@@ -174,10 +174,15 @@ and it was left untouched.
 | 2.2 | "~8%" → measured 5.9/12.6/19.4% | `cerps/rates.py` |
 | 2.5 | env-var/relative kernel resolution + explicit `ImportError`; `CELLTYPE_CPP_DIR` env var; 11 doc paths de-personalised | `cerps_sbi/__init__.py`, `reproduction/scripts/validate_against_cpp.py`, 3 docs |
 | 2.6 | packaging metadata | `pyproject.toml` |
-| 2.7 | CI running pytest **and** all five standalone harnesses | `.github/workflows/tests.yml` |
+| 2.7 | CI running pytest **and** all five standalone harnesses | prepared, content in §6; blocked from commit by GitHub's PAT policy (§4b) |
 | 2.6 | 7 pytest wrappers for the M2 layer (pytest 62 → 69) | `tests/test_m2_generalisation.py` |
 | 2.3 | `__all__` completed, `delay_steps` comment corrected | `cerps/batch.py`, `cerps/config.py` |
 | 8 | single-branch policy documented and enforced | `CONTRIBUTING.md` + GitHub ruleset |
+
+**Blocked by platform permissions** (see §4b): the CI workflow file under
+`.github/` cannot be written with a personal access token, and the ruleset
+needs `Administration: write`.  The stale branch *was* deleted, so the
+one-branch state holds; the ruleset JSON is ready to import.
 
 Nothing in `cerps/` that participates in the validated Table-3 baseline was
 changed numerically: the only code edits outside the M2/packaging/portability
@@ -210,6 +215,23 @@ A repository ruleset now enforces the one-branch policy:
 
 Contributors fork and open pull requests; see `CONTRIBUTING.md`.
 
+### 4b. What could not be finished, and why
+
+Two things the plan wanted were blocked by the platform rather than by the
+code, and both are recorded here instead of being papered over:
+
+1. **The CI workflow file is not committed.**  GitHub refuses to let a
+   personal access token write under `.github/` (a deliberate
+   workflow-injection protection): `POST /git/trees` and
+   `PUT /contents/.github/workflows/tests.yml` both fail (`403` / `404`)
+   while identical writes to any other path succeed.  The file is therefore
+   left for the repository owner to add once; its content is in §6 and the
+   reason is stated in `README.md` and `CONTRIBUTING.md`.
+2. **The ruleset could not be created.**  Creating a ruleset needs
+   `Administration: write`, which the available token does not grant.  The
+   importable JSON is in `CONTRIBUTING.md`; the branch itself *was* deleted,
+   so the one-branch state holds even before the ruleset is applied.
+
 ---
 
 ## 5. What was *not* verified, and why
@@ -223,3 +245,73 @@ Contributors fork and open pull requests; see `CONTRIBUTING.md`.
 * **`cerps_sbi` end-to-end.**  It needs the external `CERPS_complete_package`
   kernel, which is not in this repository.  Its import path was fixed and
   verified to fail loudly; its sweeps were not re-run.
+
+---
+
+## 6. Appendix — the CI workflow that could not be committed
+
+Create this file at `.github/workflows/tests.yml` (GitHub blocks PAT writes
+under `.github/`; see §4b).  Two jobs: the fast pytest suite, and the five
+standalone harness files whose checks are not all visible to pytest.
+
+```yaml
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest (69 cases)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[test,repro]" || \
+            python -m pip install numpy scipy pytest
+      - name: Run the pytest suite
+        run: python -m pytest tests/ -q
+      - name: Import the package (adapter optional)
+        run: |
+          python -c "import cerps; print('cerps', cerps.__version__)"
+
+  standalone-harness:
+    name: standalone harness files (191 checks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          python -m pip install -e ".[test,repro]" || \
+            python -m pip install numpy scipy pytest numba matplotlib
+      - name: test_cerps.py
+        run: python tests/test_cerps.py
+      - name: test_audit_fixes.py
+        run: python tests/test_audit_fixes.py
+      - name: test_audit_2026_10_21.py
+        run: python tests/test_audit_2026_10_21.py
+      - name: test_audit_ranges.py
+        run: python tests/test_audit_ranges.py
+      - name: test_m2_generalisation.py
+        run: python tests/test_m2_generalisation.py
+```
+
+The equivalent local commands (what was actually run for this report) are
+listed in `CONTRIBUTING.md` and in README's Quickstart.

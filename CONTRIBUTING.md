@@ -2,21 +2,49 @@
 
 ## Branch policy: `main` only
 
-This repository has **exactly one branch, `main`**, and that is enforced by a
-GitHub ruleset, not just by convention:
+This repository is meant to have **exactly one branch, `main`**.
 
-* creating a new branch is blocked,
-* deleting `main` is blocked,
-* force-pushing `main` is blocked,
-* a pull request must be open (or the commit must be pushed by a
-  collaborator) before history is rewritten in any other way.
+**Current state (2026-10-23).** The repository *does* have a single branch:
+the stale `add-paper-workflow` branch (0 commits ahead / 6 behind, byte-identical
+tree) was deleted, and `main` is the only ref.  The *enforcement* ruleset could
+**not** be created by the automation that prepared this change, because
+creating a ruleset requires `Administration: write`, which the available token
+does not have.  It therefore has to be applied **once, by the repository
+owner**:
 
-To contribute, **fork the repository, make your change on your fork, and
-open a pull request against `main`**.  Direct pushes to `main` are reserved
-for the repository owner.
+> Settings → Rules → Rulesets → *New ruleset* → *Import as JSON*, then paste
+> the block below (target **Branch**), and leave enforcement **Active**.
 
-There is deliberately no `develop`/`dev`/`feature-*` branch.  Work that is
-not ready for `main` lives in a fork or in an open pull request, where it is
+```json
+{
+  "name": "main-only-branch-policy",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["~ALL"], "exclude": [] } },
+  "rules": [
+    { "type": "creation" },
+    { "type": "deletion" },
+    { "type": "non_fast_forward" }
+  ],
+  "bypass_actors": [
+    { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" }
+  ]
+}
+```
+
+What that buys:
+
+| rule | effect |
+|---|---|
+| `creation` | no new branch of any name can be created |
+| `deletion` | `main` cannot be deleted |
+| `non_fast_forward` | `main` history cannot be force-rewritten |
+| bypass actor (admin) | the repository owner can still lift it when needed |
+
+Until it is applied the policy is a convention only, so please respect it:
+to contribute, **fork the repository, work on your fork, and open a pull
+request against `main`**.  There is deliberately no `develop`/`feature-*`
+branch; work that is not ready lives in a fork or in an open PR, where it is
 visible and reviewable.
 
 ## Development
