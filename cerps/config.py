@@ -187,7 +187,8 @@ class RatesConfig:
     # in legacy mode) feeding beta_SC is sampled `delay_steps` steps in the
     # past instead of the current step. 0 = paper (instantaneous) behaviour;
     # default 0 keeps the validated baseline.
-    delay_steps: int = 0               # neighbours before inhibition starts
+    delay_steps: int = 0               # P8 feedback delay, in STEPS (not h);
+                                       # multiplied by dt internally
 
 
 # ----------------------------------------------------------------------

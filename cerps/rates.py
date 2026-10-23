@@ -61,9 +61,11 @@ def resolve_K(cfg_rates, grn):
 
     The two rules can still disagree off the diagonal: the legacy rule is
     a conjunction of per-gene thresholds (a box in x-space), whereas the
-    product rule is a curved region.  With the default parameters the
-    disagreement covers ~8% of the (x1, x2) plane -- unavoidable for any
-    single-threshold smoothing of a box.
+    product rule is a curved region.  Measured over the cube [0,3]^G the
+    disagreement covers 5.9% (G=2), 12.6% (G=3) and 19.4% (G=4) -- unavoidable
+    for any single-threshold smoothing of a box, and one reason to run the
+    continuous mode on the *engine* side (rate_mode="legacy") whenever a
+    Table-3-comparable number is required.
     """
     K = getattr(cfg_rates, "K_switch", None)
     if K is not None:

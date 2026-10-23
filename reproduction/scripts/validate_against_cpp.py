@@ -18,7 +18,16 @@ sys.path.insert(0, os.path.dirname(HERE))
 from common import DATA, TABLES, M2S_FIG9  # noqa: E402
 from hsl2024.analysis import homeostasis_stats, transition_stats  # noqa: E402
 
-CPP_DIR = "/home/z/my-project/original_repo/Cell-type transition/output"
+# Directory holding the .sys/.tran output of the authors' C++ program.
+# Set $CELLTYPE_CPP_DIR to override; the default assumes the upstream
+# repository (github.com/jinzhilei/Cell-type-transition) is checked out as a
+# SIBLING of this repository, i.e. ../Cell-type-transition/output.  No
+# absolute machine-specific path is hard-coded.
+_REPO_ROOT = os.path.dirname(os.path.dirname(HERE))
+CPP_DIR = os.environ.get(
+    "CELLTYPE_CPP_DIR",
+    os.path.join(os.path.dirname(_REPO_ROOT),
+                 "Cell-type-transition", "output"))
 A = [0, 1, 3]          # type codes in the C++ .tran files
 
 

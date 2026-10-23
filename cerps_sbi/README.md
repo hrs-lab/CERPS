@@ -28,13 +28,13 @@ real CERPS parameter names (see `CERPS_DEFAULTS`, 50 keys).
 ## How to run
 
 ```bash
-# managed venv already has numpy 2.4.6 + numba 0.68.0
-PY="C:/Users/黄荣生/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
+PY="${PY:-python}"          # any Python 3.10+ with numpy + numba
 
-# tell the adapter where the kernel lives (or rely on the auto-fallback)
-export CERPS_SRC="C:/path/to/CERPS_complete_package/cerps_model/src"
+# tell the adapter where the kernel lives (required: no machine-specific
+# fallback path is baked in)
+export CERPS_SRC="${CERPS_PKG:-$HOME/CERPS_complete_package}/cerps_model/src"
 
-cd C:/Users/黄荣生/CERPS
+cd /path/to/this/repo
 $PY cerps_sbi/run_candidates.py        # runs C1–C4 sweeps, writes ../results/candidate_sweep_v1.json
 ```
 
@@ -65,8 +65,8 @@ the locked manuscript spatial config
 CERPS has **no native parameter inversion**. The real SBI layer is
 `analysis/src/abc.py` (ABC-SMC against Paul 2015 mouse-myeloid scRNA;
 cross-validation on Buenrostro 2018 scATAC). Run it from the
-`CERPS_complete_package` checkout (edit its two hardcoded `/home/z/...` paths
-first). `cerps_sbi` only does forward, controlled mechanism sweeps.
+`CERPS_complete_package` checkout (edit its two hard-coded absolute paths to
+your local layout first). `cerps_sbi` only does forward, controlled mechanism sweeps.
 
 ## Files
 

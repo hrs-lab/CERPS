@@ -44,8 +44,8 @@ This repository contains two parts:
 | TA2 (this repo) | **0.0015** | **0.0032** | **99.9953** |
 
 Cross-validation against the authors' original C++ code (m2 = 0.8 column,
-30 runs): homeostasis counts total 7026 (C++) vs 7159 (Python), SC
-176.3 vs 176.8; transition matrices agree to < 0.3 percentage points.
+30 runs): homeostasis counts total 7096 (C++) vs 7159 (Python), SC
+176.9 vs 176.8; transition matrices agree to < 0.3 percentage points.
 Two independent Python engines (numba + NumPy reference) agree within
 Monte-Carlo error.  See `docs/validation_report.md` for the full report
 and `reproduction/results/` for all figures and tables.
@@ -66,8 +66,12 @@ python tests/test_audit_2026_10_21.py            # 19 tests (2026-10-21 audit)
 python tests/test_audit_ranges.py                # 18 range-scan tests (audit §8)
 python tests/test_m2_generalisation.py           # V1-V7 proposal-layer checks
 # every file above runs standalone; python -m pytest tests/ collects the
-# 62 pytest-style cases (the two harness files expose 13/12 of their
-# 61/93 checks as test_* functions; full 191 via the standalone commands)
+# 69 pytest-style cases (the two harness files expose 13/12 of their
+# 61/93 checks as test_* functions; full 191 via the standalone commands,
+# plus the 7 M2 proposal-layer checks)
+#
+# `pip install -e ".[test,repro]"` then `python -m pytest tests/ -q`
+# is the CI-equivalent run (see .github/workflows/tests.yml).
 
 # --- batch experiments (the experiment layer) -------------------------
 python -c "
@@ -122,7 +126,8 @@ effect.  `validate` catches the traps that make a comparison meaningless
 
 ```
 cerps/                  the CERPS package (config, grn, epigenetics,
-                        division, rates, spatial, simulator, batch)
+                        division, rates, spatial, simulator, batch,
+                        h_general, notation)
 reproduction/
   hsl2024/              python reproduction of the paper
     numba_sim.py        fast engine (mirrors the C++ protocol exactly)
@@ -141,14 +146,47 @@ docs/
   literature_review.md  survey motivating every design choice
   protocol_notes.md     paper-vs-code protocol differences
   validation_report.md  reproduction validation report
+  verification_2026-10-23.md  multi-axis cross-verification of this repo
   audit_2026-10-19.md   log of the fixes applied after the code audit
   audit_2026-10-21.md   deep audit: degenerate-limit exactness, new switches
   validity_matrix.md    mechanism x regime x switches x bias lookup table
   paper-workflow/       methodology set for turning CERPS into a paper
-cerps_sbi/              adapter over the CERPS_complete_package kernel
+cerps_sbi/              adapter over the external CERPS_complete_package
+                        kernel (needs $CERPS_SRC / $CERPS_PKG; see its README)
+.github/workflows/      CI: pytest suite + standalone harness runs on main
+CONTRIBUTING.md         branch policy (main only) and contribution rules
+pyproject.toml          packaging metadata (`pip install -e ".[test,repro]"`)
 ```
 
 ## Changelog
+
+### v1.2.1 (2026-10-23) -- multi-axis cross-verification + single-branch policy
+
+An independent verification pass (`docs/verification_2026-10-23.md`) ran
+eight axes: test-suite execution, independent numerical recomputation of the
+analytic claims, doc/code consistency, portability/secret scan, packaging,
+CI coverage, and branch topology.  Every documented number was recomputed;
+the code's own claims held, but the *documentation and packaging* had drifted:
+
+| id | finding | fix |
+|---|---|---|
+| V1 | README quoted C++ totals "7026 / 176.3"; the archived `cpp_vs_python.json` says **7096 / 176.9** (as does `validation_report.md` §2) | README corrected |
+| V2 | `docs/validation_report.md` §4 still reported the v1.1.0 suite (11/11, 60/60) | updated to 61/93/19/18 = 191 + the M2 V1-V7 suite |
+| V3 | `docs/model_spec.md` described v1.0 only: no `a_tf`, no `cpg_mode="moment"` (the default), no `sister_corr`, no `alpha` in the partitioning variance, `kappa` with the *same* threshold `K` instead of the complementary `1-K`, `dr = relax*overlap` instead of the dt-consistent relaxation, `tests/test_cerps.py 37 tests` | spec brought to v1.2.0, with the corrected complementary threshold and the measured boundary mismatch (5.9/12.6/19.4% for G=2/3/4) |
+| V4 | `cerps_sbi/__init__.py` hard-coded `C:/Users/<name>/Downloads/CERPS_complete_package/...`, so the adapter imported on exactly one machine; `validate_against_cpp.py` hard-coded `/home/z/my-project/...` | env-var + relative resolution only, with an explicit `ImportError` explaining how to point at the kernel |
+| V5 | `tests/test_m2_generalisation.py` defines **no** `test_*` functions, so `pytest tests/` never ran the M2 layer and CI would have missed it entirely | 7 pytest wrappers added; `pytest tests/` now collects 69 cases |
+| V6 | no packaging metadata (`pip install -e .` impossible) and no CI | `pyproject.toml` + `.github/workflows/tests.yml` (pytest + all five standalone harnesses) |
+| V7 | `cerps.batch.__all__` omitted `load` and `dt_convergence_table`; `RatesConfig.delay_steps` carried a copy-pasted comment ("neighbours before inhibition starts") | both fixed |
+| V8 | the repository carried two branches (`main`, `add-paper-workflow`, 0 ahead / 6 behind, identical tree) | stale branch deleted; a ruleset now blocks creating any branch other than `main` (see `CONTRIBUTING.md`) |
+
+The verification also **confirmed** the numbers that had already drifted into
+legend: 27/27 independent recomputations of the analytic claims passed (OU
+variance inflation `1/(1-dt/(2z))`, beta/gaussian/cpg kernel moments, binomial
+partitioning mean and variance, the exact G=2 reduction to Eq. (1) for both
+symmetric and asymmetric thresholds, the sharp-limit convergence to Table 1,
+paracrine mass conservation, the CFL sub-stepping, the exponential overlap
+relaxation, and `dt*lambda = 0.953`).  Test counts matched exactly:
+61 + 93 + 19 + 18 = 191 standalone, 69 collected by pytest.
 
 ### v1.2.0 (2026-10-22) -- hardening fixes merged + M2 proposal layer
 

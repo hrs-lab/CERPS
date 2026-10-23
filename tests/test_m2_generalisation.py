@@ -718,6 +718,44 @@ def v7_bbase_precondition():
 
 
 # ======================================================================
+# pytest entry points.
+#
+# The V-checks below are written as plain functions (``v1_..v7_``) so that
+# ``python tests/test_m2_generalisation.py`` prints a human-readable report.
+# Without these wrappers ``pytest tests/`` collected *nothing* from this
+# file -- the whole M2 layer (h_general.py + notation.py) was invisible to
+# CI.  The wrappers add no logic: each one asserts that the corresponding
+# check runs to completion (the functions already ``assert`` internally).
+# ======================================================================
+def test_v1_notation_alias_layer():
+    v1_notation()
+
+
+def test_v2_exact_reduction_to_native_grn():
+    v2_exact_reduction()
+
+
+def test_v3_epigenetic_gates():
+    v3_gates()
+
+
+def test_v4_h_switch_levels():
+    v4_h_switch()
+
+
+def test_v5_racipe_enumeration_and_sign_criterion():
+    v5_racipe()
+
+
+def test_v6_end_to_end_simulation():
+    v6_end_to_end()
+
+
+def test_v7_b_base_precondition():
+    v7_bbase_precondition()
+
+
+# ======================================================================
 def main():
     v1_notation()
     v2_exact_reduction()

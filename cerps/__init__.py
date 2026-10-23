@@ -22,7 +22,7 @@ simulator   individual-based event loop coupling everything
 batch       parameter sweeps, multi-seed replicates, checkpointing,
             statistics and numerical-health checks (the experiment layer)
 """
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 from . import config, division, epigenetics, grn, rates, spatial  # noqa: F401
 from . import notation, h_general                                    # noqa: F401

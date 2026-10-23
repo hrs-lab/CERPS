@@ -47,9 +47,9 @@ import numpy as np
 from .config import CERPSConfig
 from .simulator import Simulator
 
-__all__ = ["run_one", "sweep", "aggregate", "homeostasis", "transitions",
-           "health_check", "report", "set_path", "get_path", "validate",
-           "grn_stiffness"]
+__all__ = ["run_one", "sweep", "load", "aggregate", "homeostasis",
+           "transitions", "health_check", "dt_convergence_table", "report",
+           "set_path", "get_path", "validate", "grn_stiffness"]
 
 
 # ----------------------------------------------------------------------

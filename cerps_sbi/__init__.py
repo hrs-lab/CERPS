@@ -42,24 +42,43 @@ import os
 import sys
 import numpy as np
 
-# Robustly locate the real CERPS kernel (cerps_model/src/cerps.py), which is
-# NOT part of this adapter. Search order:
-#   1. $CERPS_SRC env var (explicit)
-#   2. sibling cerps_model/src (when this adapter sits beside cerps_model, as in
-#      the upstream hrs-lab/CERPS repo)
-#   3. the local CERPS_complete_package checkout used to develop this adapter
+# Locate the real CERPS kernel (cerps_model/src/cerps.py), which is NOT part
+# of this adapter and is NOT distributed in this repository.  Search order:
+#   1. $CERPS_SRC env var (explicit; point it at the kernel's src/ directory)
+#   2. sibling cerps_model/src, i.e. when the kernel is checked out next to
+#      this adapter as cerps_model/src/cerps.py
+# No machine-specific path is hard-coded: an earlier version embedded an
+# absolute path into the author's own home directory, which silently made the
+# adapter importable on exactly one machine and unimportable everywhere else
+# (audit 2026-10-23).
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 _CANDIDATES = [
     os.environ.get("CERPS_SRC"),
     os.path.join(REPO_ROOT, "cerps_model", "src"),
-    "C:/Users/黄荣生/Downloads/CERPS_complete_package/cerps_model/src",
 ]
+_KERNEL_SRC = None
 for _c in _CANDIDATES:
     if _c and os.path.isfile(os.path.join(_c, "cerps.py")):
+        _KERNEL_SRC = _c
         if _c not in sys.path:
             sys.path.insert(0, _c)
         break
+
+if _KERNEL_SRC is None:
+    raise ImportError(
+        "cerps_sbi needs the external `cerps_model` kernel "
+        "(cerps_model/src/cerps.py), which is NOT distributed in this "
+        "repository.\n"
+        "Provide it in one of two ways:\n"
+        "  * set the environment variable CERPS_SRC to the kernel's src/ "
+        "directory, or\n"
+        "  * check the kernel out next to this adapter so that "
+        "cerps_model/src/cerps.py exists.\n"
+        "Searched: %s\n"
+        "Nothing else in the repository depends on this package; the "
+        "dataclass-based `cerps/` package is self-contained."
+        % [c for c in _CANDIDATES if c])
 
 from cerps import run_cerps, CERPS_DEFAULTS  # noqa: E402
 

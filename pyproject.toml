@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cerps"
+version = "1.2.1"
+description = "CERPS: Coupled Epigenetic-Regulatory-Population-Spatial model for cell differentiation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "Rongsheng Huang" }]
+keywords = ["systems-biology", "cell-differentiation", "epigenetics",
+            "individual-based-model", "gene-regulatory-network"]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+dependencies = ["numpy>=1.24,<3", "scipy>=1.10"]
+
+# The heavy figure/batch layer additionally needs matplotlib and numba
+# (see requirements.txt; numba is pinned there for bit-level
+# reproducibility of the archived Table-3 data).
+[project.optional-dependencies]
+repro = ["matplotlib>=3.7", "numba==0.65.0"]
+test = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+include = ["cerps*", "cerps_sbi*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The reproduction engines (reproduction/) are driven by their own scripts,
+# not by pytest, so they are deliberately not in testpaths.
+addopts = "-q"

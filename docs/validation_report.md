@@ -152,9 +152,14 @@ fixed-epigenetic-state divisions (Fig. 3 protocol).
 
 ## 4. CERPS cross-validation
 
-`tests/test_cerps.py` — 11/11 tests pass (full suite 60/60: `test_cerps.py`
-11 + `test_audit_fixes.py` 12 + `test_audit_2026_10_21.py` 19 +
-`test_audit_ranges.py` 18), including:
+`tests/test_cerps.py` — 61/61 checks pass (`python tests/test_cerps.py`;
+13 of them are also collected by `pytest`).  The full standalone suite is
+**191 checks**: `test_cerps.py` 61 + `test_audit_fixes.py` 93 +
+`test_audit_2026_10_21.py` 19 + `test_audit_ranges.py` 18, plus the
+`test_m2_generalisation.py` V1-V7 proposal-layer suite (7 checks, also
+exposed to `pytest`).  `python -m pytest tests/` collects 69 cases
+(61 + 93 checks include hand-rolled harness output, so the two counts
+differ by design — see the README).  Coverage includes:
 
 * GRN: N-gene update == paper Eq. (1) for G=2 (bitwise-level numerical
   identity on the deterministic trajectory); 2-gene attractors match the

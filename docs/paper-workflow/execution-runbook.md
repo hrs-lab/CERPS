@@ -24,15 +24,14 @@ CERPS_complete_package/                # the model + analysis package
 ## 00 · Environment (tested on this machine)
 
 ```bash
-# Use the managed venv that already has numpy + numba.
-#   Win: C:/Users/黄荣生/.workbuddy/binaries/python/envs/default/Scripts/python.exe
-#   (Python 3.13.14, numpy 2.4.6, numba 0.68.0 — verified working)
-PY="C:/Users/黄荣生/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
+# Any Python 3.10+ with numpy + numba works (verified with 3.13, numpy 2.x,
+# numba 0.68).
+PY="${PY:-python}"
 
-# The kernel is a single file; no pip install. Just point PYTHONPATH at it:
-export CERPS_SRC="C:/Users/黄荣生/Downloads/CERPS_complete_package/cerps_model/src"
-# To run the cerps_sbi adapter, also put the package parent on the path:
-export CERPS_PKG="C:/Users/黄荣生/Downloads/CERPS_complete_package"
+# The kernel is a single file; no pip install.  Set these two to YOUR local
+# checkout of CERPS_complete_package (it is not part of this repository):
+export CERPS_PKG="${CERPS_PKG:-$HOME/CERPS_complete_package}"
+export CERPS_SRC="$CERPS_PKG/cerps_model/src"
 
 $PY -c "import sys; sys.path.insert(0,'$CERPS_SRC'); from cerps import run_cerps, CERPS_DEFAULTS; print('CERPS OK, params=', len(CERPS_DEFAULTS))"
 ```
@@ -110,8 +109,8 @@ print("init_x", init_x.shape)
 
 ```python
 # 03_build_config.py
-import sys, numpy as np
-sys.path.insert(0, "C:/Users/黄荣生/Downloads/CERPS_complete_package")  # for cerps_sbi
+import os, sys, numpy as np
+sys.path.insert(0, os.environ.get("CERPS_PKG", "."))   # parent of cerps_sbi
 from cerps_sbi import legacy_config
 
 cfg = legacy_config()                 # CERPS_DEFAULTS + locked spatial BASE
@@ -145,10 +144,10 @@ sigma 0.01–0.08 | D_u 1e-5–8e-5
 
 ```python
 # 04_calibrate.py  (thin driver over analysis/src/abc.py)
-import sys
-sys.path.insert(0, "C:/Users/黄荣生/Downloads/CERPS_complete_package/analysis/src")
-# abc.py reads /home/z/my-project/CERPS/... hardcoded; edit those two paths
-# to the local CERPS_complete_package layout, then:
+import os, sys
+sys.path.insert(0, os.path.join(os.environ["CERPS_PKG"], "analysis/src"))
+# abc.py (upstream) hard-codes its own absolute paths; edit those two paths
+# to your local CERPS_complete_package layout, then:
 #   python analysis/src/abc.py
 # Output: ABC posterior over the 8 coupling params; posterior-predictive check
 # on Paul2015; cross-validation correlation on Buenrostro2018 accessibility.
@@ -166,8 +165,8 @@ sys.path.insert(0, "C:/Users/黄荣生/Downloads/CERPS_complete_package/analysis
 
 ```python
 # 05_mechanism_sweep.py
-import sys, numpy as np, json
-sys.path.insert(0, "C:/Users/黄荣生/Downloads/CERPS_complete_package")
+import os, sys, numpy as np, json
+sys.path.insert(0, os.environ.get("CERPS_PKG", "."))
 from cerps_sbi import run_one
 
 # ---- Example A: P1 niche feedback (C1, real axis) -------------------------
@@ -243,9 +242,9 @@ from scipy.stats import gaussian_kde
 
 ```bash
 # 08_run_all.sh
-PY="C:/Users/黄荣生/.workbuddy/binaries/python/envs/default/Scripts/python.exe"
-export CERPS_SRC="C:/Users/黄荣生/Downloads/CERPS_complete_package/cerps_model/src"
-export CERPS_PKG="C:/Users/黄荣生/Downloads/CERPS_complete_package"
+PY="${PY:-python}"
+export CERPS_PKG="${CERPS_PKG:-$HOME/CERPS_complete_package}"
+export CERPS_SRC="$CERPS_PKG/cerps_model/src"
 $PY 02_preprocess.py
 $PY 03_build_config.py
 $PY analysis/src/abc.py                 # 04 calibration (edit hardcoded paths first)
